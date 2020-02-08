@@ -1,0 +1,39 @@
+.btn-open-model-unit {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+#modal-form-unit-daftar-unit {
+    max-height: 50vh;
+    width: 100%;
+}
+
+.tag-list {
+    display: flex;
+    list-style-type: none;
+    flex-direction: column;
+    margin: 0;
+    margin-bottom: 10px;
+    padding: 0;
+    text-overflow: ellipsis;
+}
+
+.tag-list li {
+    display: flex;
+    justify-content: space-between;
+    padding-left: 5px;
+    padding-right: 5px;
+    color: white;
+    background-color: DodgerBlue;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.tag-list .close {
+    cursor: pointer;
+    color: white;
+}
+
+.tag-list .unit {
+    text-overflow: ellipsis;
+}

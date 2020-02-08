@@ -1,0 +1,32 @@
+#page-list-rencana-kerja-baru .content-title{
+    display: flex;
+    justify-content: space-between;
+    /* background-color: #f8f9fc; */
+    height: 50px;
+    align-items: center;
+    padding: 10px;
+}
+
+#page-list-rencana-kerja-baru .container-flex {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+    margin-bottom: 5px;
+    align-items: center;
+}
+
+#page-list-rencana-kerja-baru table input {
+    display: block;
+    width: 100%;
+    padding : 10px;
+}
+
+#page-list-rencana-kerja-baru table select {
+    display: block;
+    width: 100%;
+    padding : 10px;
+}
+
+
+
+
