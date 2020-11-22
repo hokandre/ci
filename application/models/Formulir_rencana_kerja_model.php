@@ -119,7 +119,7 @@ public function get_laporan_ketua_unit($tahun, $semester, $unit_id){
 public function get_laporan_by_user($user_id){
     $sql = "
             SELECT formulir_hasil_bidang_kinerja_utama.*,
-             user.nama_user, unit.nama_unit,
+             user.nama_user, unit.nama_unit, unit.tenaga_pengajar,
              periode.tahun, periode.semester,
              (
                  SUM(

@@ -32,25 +32,50 @@ public function get_with_institusi()
 
 public function get_unit_by_ketua_id($idKetua)
 {
-    $sql = "SELECT unit.id, unit.nama_unit, ketua_unit.ketua_unit, unit.tenaga_pengajar FROM unit 
-    JOIN ketua_unit ON  unit.id = ketua_unit.unit_id 
-    WHERE ketua_unit.ketua_unit = ".$idKetua;
+    $sql = "
+    SELECT 
+        CASE
+            WHEN COUNT(user.id) = 0
+            THEN CONCAT('Ketua ', unit.nama_unit)
+            ELSE unit.nama_unit
+        END as nama_unit,
+        unit.id, 
+        ketua_unit.ketua_unit, 
+        unit.tenaga_pengajar, 
+        COUNT(user.id) AS `jumlah_anggota` 
+    FROM unit 
+    LEFT JOIN user ON unit.id = user.unit_id
+    JOIN ketua_unit 
+    ON  unit.id = ketua_unit.unit_id 
+    WHERE ketua_unit.ketua_unit = '$idKetua' 
+    GROUP BY unit.id";
     $query = $this->db->query($sql);
-    if($query->num_rows() > 0){
-        return $query->row();
-    }else{
-        return false;
-    }
+    return $query->result();
+}
+
+public function get_unit_ketua_by_institusi_id($institusi_id){
+    $sql = " 
+    SELECT 
+        unit.id, 
+        CONCAT('Ketua ', unit.nama_unit) as nama_unit, 
+        unit.institusi_id,
+        unit.tenaga_pengajar,
+        '1' as formulir_ketua
+    FROM unit
+    JOIN ketua_unit
+    WHERE ketua_unit.unit_id = unit.id
+    AND unit.institusi_id = $institusi_id
+    ";
+    $query = $this->db->query($sql);
+    return $query->result();
 }
 
 public function get_unit_by_institusi_id($institusi_id){
-   
-    
-
     $sql = "
         SELECT data_unit.id,data_unit.nama_unit, data_unit.institusi_id,data_unit.tenaga_pengajar, institusi.nama_institusi,data_unit.jumlah_anggota,
-            ketua_unit.ketua_unit,
-            (user.nama_user) as `nama_ketua_unit`
+        ketua_unit.ketua_unit,
+        (user.nama_user) as `nama_ketua_unit`,
+        '0' as formulir_ketua
         FROM 
         (
             SELECT 
@@ -66,14 +91,24 @@ public function get_unit_by_institusi_id($institusi_id){
         WHERE ketua_unit.unit_id = data_unit.id
         AND ketua_unit.ketua_unit = user.id
         AND institusi.id = data_unit.institusi_id
+        AND data_unit.jumlah_anggota > 0
         ORDER BY data_unit.id";
     $query = $this->db->query($sql);
     return $query->result();
 }
 
-public function get_unit_by_id($unit_id){
+public function get_by_id($unit_id){
     $sql =  "
-            SELECT  unit.id, unit.nama_unit, unit.tenaga_pengajar, unit.institusi_id, 
+            SELECT  unit.id,
+                    CASE
+                        WHEN unit.tenaga_pengajar = '1' AND COUNT(user.id) != 0 
+                        THEN CONCAT('Dosen ', unit.nama_unit)
+                        WHEN unit.tenaga_pengajar = '1' AND COUNT(user.id) = 0 
+                        THEN CONCAT('Ketua ', unit.nama_unit)
+                        ELSE unit.nama_unit
+                    END as nama_unit,
+                    unit.tenaga_pengajar,
+                    unit.institusi_id, 
                     ketua_unit.ketua_unit,
                     user.nama_user,
                     institusi.nama_institusi,
@@ -115,6 +150,23 @@ public function add_unit($data){
     return $new_unit_id;
 }
 
+public function get_unit_by_name($nama_unit, $institusi_id){
+    $sql =  "
+            SELECT  unit.id, unit.nama_unit, unit.tenaga_pengajar, unit.institusi_id, 
+                    ketua_unit.ketua_unit,
+                    user.nama_user,
+                    institusi.nama_institusi,
+                    COUNT(user.id) as `jumlah_anggota`
+            FROM unit
+            JOIN ketua_unit, user, institusi
+            WHERE unit.institusi_id = institusi.id
+            AND unit.id = ketua_unit.unit_id
+            AND ketua_unit.ketua_unit = user.id
+            AND UPPER(unit.nama_unit) = UPPER('$nama_unit')
+            AND institusi.id = $institusi_id";
+    $query = $this->db->query($sql);
+    return $query->row();
+}
 
 }
 

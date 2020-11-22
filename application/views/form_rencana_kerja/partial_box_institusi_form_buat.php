@@ -1,4 +1,3 @@
-
 <?php  
 $table_header = '
     <div class="table-header">

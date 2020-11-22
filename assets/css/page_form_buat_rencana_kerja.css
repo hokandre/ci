@@ -27,6 +27,27 @@
     padding : 10px;
 }
 
+#page-list-rencana-kerja-baru table td[name="col-sumber"] {
+    width: 100px;
+}
+#page-list-rencana-kerja-baru table td[name="col-bidang"] {
+    width: 100px;
+}
+#page-list-rencana-kerja-baru table td[name="col-indikator"] {
+    width: 300px;
+}   
+
+#page-list-rencana-kerja-baru table td[name="col-kpi"] input[name="kpi"]{
+    display: block;
+    width: 100%;
+}   
+
+
+#page-list-rencana-kerja-baru table td[name="col-indikator"] select {
+   width: 100%;
+   max-width: 300px;
+}
+
 
 
 

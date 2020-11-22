@@ -1,206 +1,127 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="">
-  <meta name="author" content="">
+<?php $hak_akses_bpm = 1 ;?>
 
-  <title><?=$title;?></title>
-  <!--Global CSS-->
-  <link href=<?php echo base_url()."assets/css/global.css";?> rel="stylesheet"/>
-</head>
-<body>
-    <?php $this->load->view('template/header.php');?>
+<!-- HEADER -->
+<?php $this->load->view('partials/header.php', [
+  "title" => "Dashboard Indikator User",
+  "css" => [
 
-    <main>
-        <?php $this->load->view('template/sidebar/sidebar_bpm.php');?>
-        <section class="page-content" id="page-dashboard-bidang">
-            <div class="content-title">
-                <div class="page-title">
-                    <h3> <i class="fas fa-tachometer-alt"></i> Pencapain User
-                         <!-- lihat sebagai individu -->
-                         <?php if($this->session->userdata("hak_akses") == 1 &&  $mode_individu == false) :?>
-                            <form id="ubah-unit" action="<?=$action_lihat_indikator_unit;?>" style="display: inline-block;" method="post">
-                                <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
-                                <input type="hidden" name="ketua_unit" value="<?=$ketua_unit;?>"/>
-                                <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
-                                <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
-                                <select name="unit_id" class="toolbar toolbar-white">
-                                    <?php $indexUnit = 0; foreach($data_unit as $unit): $indexUnit++;?>
-                                    <?php if($unit->jumlah_anggota == 0) :?>
-                                        <option ketua-unit="1" value="<?=$unit->id;?>" <?= $unit->id == $selected_unit && $ketua_unit == "1" ? "selected" : "";?> >
-                                            <?=$unit->nama_unit;?>
-                                        </option>
+  ]
+]);?> 
 
-                                    <?php else :?>
-                                        <option ketua-unit="1" value="<?=$unit->id;?>" <?= $unit->id == $selected_unit && $ketua_unit == "1" ? "selected" : "";?> >
-                                        <?="Ketua ".$unit->nama_unit;?>
-                                        </option>
-                                        <option ketua-unit="0" value="<?=$unit->id;?>" <?= $unit->id == $selected_unit && $ketua_unit == "0" ? "selected" : "";?> >
-                                        <?=$unit->tenaga_pengajar == "1" ? "Dosen ".$unit->nama_unit : $unit->nama_unit;?>
-                                        </option>
-                                    <?php endif; ?>
-                                    <?php endforeach;?>
-                                </select>
-                            </form>
-                        <?php else : ?>
-                        <form id="ubah-unit" action="<?=$action_lihat_indikator_user;?>" method="post" style="display:inline;">
-                            <?php if(isset($mode_individu)) : ?>
-                            <?php if($mode_individu) : ?>
-                                <input type="hidden" name="mode_individu" value="<?=$mode_individu;?>"/>
-                            <?php endif;?>
-                            <?php endif;?>
-                            
-                            <input type="hidden" value="<?=$ketua_unit;?>" name="ketua_unit"/>
-                            <input type="hidden" name="user_id" value="<?=$selected_user;?>"/>
-                            <input type="hidden" name="unit_id" value="<?=$selected_unit;?>"/>
-                            <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
-                            <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
-                            <select name="unit_id" class="toolbar toolbar-white">
-                                <?php $indexUnit = 0; foreach($data_unit as $unit): $indexUnit++;?>
-                                <option 
-                                    view="<?=$unit->view;?>"
-                                    value="<?=$unit->unit_id;?>" 
-                                    ketua-unit="<?=$unit->ketua == "1" ? "1" : "0";?>" 
-                                    <?= $ketua_unit == $unit->ketua && $selected_unit == $unit->unit_id ? "selected" : "";?>>
-                                    <?=$unit->tenaga_pengajar == "1" && $unit->ketua != "1" ? "Dosen ".$unit->nama_unit : $unit->nama_unit;?>
-                                </option>
-                                <?php endforeach;?>
-                            </select>
-                        </form>
-                        <?php endif;?>
+<main>
+    <!-- SIDEBAR -->
+    <?php $this->load->view('template/sidebar/sidebar_bpm.php');?>
 
-                        <?php if($ketua_unit != '1'  && $this->session->userdata("ketua_unit") == $selected_unit && $this->session->userdata("unit_id") == $selected_unit) : ?>
-                            <!-- lihat sebagai unit atau user-->
-                            <form id="form-versi" action="" method="post" style="display:inline;">
-                                <input type="hidden" value="<?=$ketua_unit;?>" name="ketua_unit"/>
-                                <input type="hidden" value="<?=$selected_unit;?>" name="unit_id"/>
-                                <input type="hidden" value="<?=$selected_periode_tahun_semetser;?>" name="periode_id"/>
-                                <input type="hidden" value="<?=$selected_renstra_periode;?>" name="renstra_periode"/>
-                                <input type="radio" value="unit" name="versi" <?=$versi=="unit" ? "checked" :"";?>/> <span style="padding:10px;"> Unit </span> 
-                                <input type="radio" value="individu" name="versi" <?=$versi=="individu" ? "checked" :"";?>/> <span style="padding:10px;"> User </span> 
-                            </form>
-                        <?php endif;?>
-                    </h3> 
+    <section class="page-content" id="page-dashboard-bidang">
+        <!-- CONTENT TITLE -->
+        <?php $this->load->view("indikator/template/content_title_dashboard_indikator_user.php");?>
+
+    <!-- bread crumb -->
+    <?php $this->load->view("indikator/template/breadcrumb_dashboard_indikator_user.php",[
+        "show_bread_crumb_unit" => $show_bread_crumb_unit,
+        "breadcrumb" => isset($breadcrumb) ? $breadcrumb : NULL,
+        "selected_unit_crumb" => isset($selected_unit_crumb) ? $selected_unit_crumb : NULL,
+        "selected_ketua_unit_crumb" => isset($selected_ketua_unit_crumb) ? $selected_ketua_unit_crumb : NULL,
+        "selected_institusi_crumb" => isset($selected_institusi_crumb) ? $selected_institusi_crumb : NULL,
+        "selected_periode_tahun_semester_crumb" => isset($selected_periode_tahun_semester_crumb) ? $selected_periode_tahun_semester_crumb : NULL,
+        "selected_renstra_periode_crumb" => isset($selected_renstra_periode_crumb) ? $selected_renstra_periode_crumb : NULL
+    ]);?>
+
+    <div class="flex-row">
+        <!-- pie chart -->
+        <div class="flex-col-6">
+            <div class="card">
+                <div class="card-header">
+                <?php 
+                    $tahun = explode("-", $selected_periode_tahun_semetser)[0];
+                    $semester = explode("-", $selected_periode_tahun_semetser)[1];
+                    $keteranganperiode = "";
+                    if($semester == "1") {
+                    $keteranganperiode = "September ".($tahun)." - Februari ".($tahun+1);
+                    }else{
+                    $keteranganperiode = "Maret ".($tahun+1)." - Agustus ".($tahun+1);
+                    }
+                ?>
+                <h4><i class="fas fa-tachometer-alt"></i> 
+                    Pencapaian User Periode (<?=$keteranganperiode;?>)
+                </h4>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative;">
+                        <h4 style="text-align:center; margin-bottom:10px;"><?=$nama_user;?></h4>
+                        <canvas id="canvas-kinerja-saat-ini"></canvas>
+                    </div>
                 </div>
             </div>
+        </div>
+        <!-- line chart -->
+        <div class="flex-col-6">
+            <div class="card">
+                <div class="card-header card-header-dashboard">
+                <h4><i class="fas fa-history"></i> History Kinerja </h4>
+                </div>
+                <div class="card-body">
+                    <form id="ubah-periode" action="<?=$action_lihat_indikator_user;?>" method="post">
+                        <?php if($show_bread_crumb_unit == "1") : ?>
+                        <!-- for bread crum unit -->
+                        <input type="hidden" name="show_bread_crumb_unit" value="1"/>
+                        <input type="hidden" name="unit_id_crumb" value="<?=$selected_unit_crumb;?>">
+                        <input type="hidden" name="periode_id_crumb" value="<?=$selected_periode_tahun_semester_crumb;?>"/>
+                        <input type="hidden" name="renstra_periode_crumb" value="<?=$selected_renstra_periode_crumb;?>"/>
+                        <input type="hidden" name="ketua_unit_crumb" value="<?=$selected_ketua_unit_crumb;?>"/>
+                        <input type="hidden" name="institusi_id_crumb" value="<?=$selected_institusi_crumb;?>"/>
+                        <?php endif;?>
+                        
+                        <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>">
+                        <input type="hidden" name="mode_individu" value="<?=$mode_individu;?>"/>
+                        <input type="hidden" name="user_id" value="<?=$selected_user;?>"/>
+                        <input type="hidden" name="unit_id" value="<?=$selected_unit;?>"/>
+                        <input type="hidden" name="ketua_unit" value="<?=$ketua_unit;?>"/>
+                        <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
+                        <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
 
-        <!-- bread crumb -->
-        <ul class="breadcrumb">
-            <li>
-                <?php if($show_bread_crumb_unit == "1") : ?>
-                    <form action="<?=$breadcrumb['unit']['url'];?>" method="post"  style="display: inline-block; margin-right:15px;">
-                        <input type="hidden" name="unit_id" value="<?=$selected_unit_crumb;?>"/>
-                        <input type="hidden" name="ketua_unit" value="<?=$selected_ketua_unit_crumb;?>"/>
-                        <input type="hidden" name="institusi_id" value="<?=$selected_institusi_crumb;?>"/>
-                        <input type="hidden" name="periode_id"value="<?=$selected_periode_tahun_semester_crumb?>"/>
-                        <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode_crumb;?>"/>
-                        <input type="submit" value="<?=$breadcrumb['unit']['name']?>"/>
-                    </form>
-        
-                <?php endif;?>
-            </li>
-        </ul>
-
-        <div class="flex-row">
-            <!-- pie chart -->
-            <div class="flex-col-6">
-                <div class="card">
-                    <div class="card-header">
-                    <?php 
-                        $tahun = explode("-", $selected_periode_tahun_semetser)[0];
-                        $semester = explode("-", $selected_periode_tahun_semetser)[1];
-                        $keteranganperiode = "";
-                        if($semester == "1") {
-                        $keteranganperiode = "September ".($tahun)." - Februari ".($tahun+1);
-                        }else{
-                        $keteranganperiode = "Maret ".($tahun+1)." - Agustus ".($tahun+1);
-                        }
-                    ?>
-                    <h4><i class="fas fa-tachometer-alt"></i> 
-                        Pencapaian User Periode (<?=$keteranganperiode;?>)
-                    </h4>
-                    </div>
-                    <div class="card-body">
                         <div class="chart-container" style="position: relative;">
-                            <h4 style="text-align:center; margin-bottom:10px;"><?=$nama_user;?></h4>
-                            <canvas id="canvas-kinerja-saat-ini"></canvas>
+                            <canvas id="canvas-statistik-kinerja"></canvas>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <!-- line chart -->
-            <div class="flex-col-6">
-                <div class="card">
-                    <div class="card-header card-header-dashboard">
-                    <h4><i class="fas fa-history"></i> History Kinerja </h4>
-                    </div>
-                    <div class="card-body">
-                       <form id="ubah-periode" action="<?=$action_lihat_indikator_user;?>" method="post">
-                            <?php if($show_bread_crumb_unit == "1") : ?>
-                            <!-- for bread crum unit -->
-                            <input type="hidden" name="show_bread_crumb_unit" value="1"/>
-                            <input type="hidden" name="unit_id_crumb" value="<?=$selected_unit_crumb;?>">
-                            <input type="hidden" name="periode_id_crumb" value="<?=$selected_periode_tahun_semester_crumb;?>"/>
-                            <input type="hidden" name="renstra_periode_crumb" value="<?=$selected_renstra_periode_crumb;?>"/>
-                            <input type="hidden" name="ketua_unit_crumb" value="<?=$selected_ketua_unit_crumb;?>"/>
-                            <input type="hidden" name="institusi_id_crumb" value="<?=$selected_institusi_crumb;?>"/>
-                            <?php endif;?>
-
-                            <input type="hidden" name="user_id" value="<?=$selected_user;?>"/>
-                            <input type="hidden" name="unit_id" value="<?=$selected_unit;?>"/>
-                            <input type="hidden" name="ketua_unit" value="<?=$ketua_unit;?>"/>
-                            <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
-                            <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
-
-                           <div class="chart-container" style="position: relative;">
-                               <canvas id="canvas-statistik-kinerja"></canvas>
-                           </div>
-                       </form>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="card" style="margin-top: 30px;">
-            <div class="card-header">
-                <h4><i class="fas fa-info"></i> Detil KPI Unit</h4>
-            </div>
-
-            <div class="card-body">
-                <div class="chart-container" style="position: relative;">
-                    <canvas id="canvas-detil-kinerja-saat-ini"></canvas>
-                </div>
-            </div>
+    <div class="card" style="margin-top: 30px;">
+        <div class="card-header">
+            <h4><i class="fas fa-info"></i> Detil KPI Unit</h4>
         </div>
 
-        </section>
-    </main>
-</body>
-<!-- Jquery -->
-<script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
-<!-- Font Awsome -->
-<script src="https://kit.fontawesome.com/60acd380e3.js" crossorigin="anonymous"></script>
-<!-- ChartJs -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.js" crossorigin="anonymous"></script>
+        <div class="card-body">
+            <div class="chart-container" style="position: relative;">
+                <canvas id="canvas-detil-kinerja-saat-ini"></canvas>
+            </div>
+        </div>
+    </div>
 
-<!-- Own js file for global setting -->
-<script src=<?php echo base_url()."assets/js/global.js";?>></script>
+    </section>
+</main>
+
+<!-- FOOTER -->
+<?php $this->load->view("partials/footer.php", [
+    "js" => [
+        "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.js"
+    ]
+]) ;?>
 
 <script>
 let urlUnit = JSON.parse('<?php echo json_encode($action_lihat_indikator_unit);?>');
 let urlUser =  JSON.parse('<?php echo json_encode($action_lihat_indikator_user);?>');
 //data untuk pie chart
-let dataKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_kinerja_saat_ini);?>');
+let dataKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_kinerja);?>');
 //data untuk bar chart
-let dataDetilKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_detil_kinerja_saat_ini)?>');
+let dataDetilKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_detil_kinerja)?>');
 //data untuk line chart
 let dataStatistikKinerja = JSON.parse('<?php echo json_encode($data_kinerja_statistik); ?>');
 let keteranganPeriode = JSON.parse('<?php echo json_encode($keteranganperiode);?>');
 let renstraPeriode = JSON.parse('<?php echo  is_null($selected_obj_renstra_periode) ? "" : json_encode($selected_obj_renstra_periode); ?>');
-
 
 $(document).on('click', 'input[name="versi"]', function(){
   let versi = $(this).val();
@@ -223,26 +144,6 @@ $(document).on('change', 'select[name="unit_id"]', function(){
   $('#ubah-unit input[name="ketua_unit"]').val(ketuaValue);
   $('#ubah-unit').submit();
 })
-
-
-
-let colors = [ 
-     '#4661EE',
-     '#EC5657',
-     '#1BCDD1',
-     '#8FAABB',
-     '#B08BEB',
-     '#3EA0DD',
-     '#F5A52A',
-     '#23BFAA',
-     '#FAA586',
-     '#EB8CC6',
-     "#2F4F4F",
-    "#008080",
-    "#2E8B57",
-    "#3CB371",
-    "#90EE90"
-];
 
 //form : ubah - bidang 
 $(document).on('change', 'select[name="bidang_id"]', function(){
@@ -352,8 +253,6 @@ let myBarChartDetilKinerjaSaatIni = new Chart(canvasDetilKinerjaSaatIni, {
     }
 });
 
-
-
 let canvasStatistikKinerja = $('#canvas-statistik-kinerja');
 let dataMyLineChartStatistikKinerja = {};
 let labelsMyLineChartStatistikKinerja = [];
@@ -449,6 +348,4 @@ if(renstraPeriode){
         }
     });
 }
-
 </script>
-</html>

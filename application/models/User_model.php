@@ -27,11 +27,21 @@ public function get_user_by_unit_id($unit_id)
      return $query->result();
 }
 
-public function get_user_by_id($id){
+public function o($id){
      $sql = "
      SELECT 
-          user.id, user.nama_user,user.unit_id,user.status,user.password_user,
-          unit.nama_unit, unit.tenaga_pengajar, unit.institusi_id,
+          user.id, 
+          user.nama_user,
+          user.unit_id,
+          user.status,
+          user.password_user,
+          CASE
+               WHEN unit.tenaga_pengajar = '1'
+               THEN CONCAT('Dosen ', unit.nama_unit)
+               ELSE unit.nama_unit 
+          END as nama_unit, 
+          unit.tenaga_pengajar, 
+          unit.institusi_id,
           institusi.nama_institusi
      FROM user 
      JOIN unit , institusi

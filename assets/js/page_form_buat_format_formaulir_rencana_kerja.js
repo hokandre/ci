@@ -254,6 +254,9 @@ $(document).on('add', '#table-form-rencana-kerja-baru .tag-list .tag-list-item',
     let idInstitusi = 'institusi-' + $(this).attr("data-institusi-id");
     let unitId = $(this).attr("data-unit-id");
     let ketuaUnit = $(this).attr("data-ketua-unit");
+    if(!ketuaUnit){
+        ketuaUnit = "";
+    }
     let target = $(this).attr("data-target");
     let satuan = $(this).attr("data-satuan");
     let namaKpi = $(this).closest('tr').find('td[name="col-kpi"]').find('input[name="kpi"]').attr("data-nama-kpi");
@@ -319,28 +322,20 @@ $(document).on('change', '#table-form-rencana-kerja-baru .tag-list .tag-list-ite
             simbolSatuan = 'org';
             break;
         case 'satuan' :
-            simbolSatuan = 'Angka';
+            simbolSatuan = 'Buah (Desimal)';
+            break;
+        case 'satuan bulat' :
+            simbolSatuan = 'Buah (Bulat)';
             break;
         default :
             simbolSatuan = simbolSatuan;
             break;
     }
 
-
-    console.log('unit id ', unitId)
-    console.log('ketua unit', ketuaUnit)
-    console.log('row id ', rowId)
-
-    console.log('find institusi'+ $(`#${institusiId}`).length)
-    console.log('find accordion' + $(`#${institusiId} button.accordion[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).length)
-    console.log('find panel' + $(`#${institusiId} button.accordion[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).next('.panel').length)
-    console.log('find tabel' + $(`#${institusiId} button.accordion[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).next('.panel').find('.table').length)
-    console.log('find row' + $(`#${institusiId} button.accordion[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).next('.panel').find('.table').find(`div[data-row-id="${rowId}"]`).length)
     let rowTable =  $(`#${institusiId} button.accordion[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`)
                         .next('.panel')
                         .find('.table')
                         .find(`div[data-row-id="${rowId}"]`);
-    console.log(rowTable)
    
     $(rowTable).find("div[name='col-sumber']").find("p")
         .attr("data-sumber-id",sumberId)
@@ -419,7 +414,6 @@ $(document).on('click', '#btn-post', function(){
         })
         dataTable.push(rowData);
     })
-
 
     $.ajax({
         type : 'POST',
@@ -579,8 +573,7 @@ $(document).on("click", '#modal-unit #btn-save', function(){
             simbolSatuan = simbolSatuan;
             break;
     }
-
-
+    
     if ($(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).length){
         //update data pada modal
         $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-target', target);
@@ -588,14 +581,19 @@ $(document).on("click", '#modal-unit #btn-save', function(){
         $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-unit-id', unitId);
         $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-institusi-id', institusiId);
         $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-satuan', satuan);
-        $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).html(`<span class="tag-list-item-nama-unit">${namaUnit}</span> <span class="tag-list-item-target">target:${target} ${simbolSatuan} <span class="close">&#10005;</span></span>`);
+        $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).html(`<span class="tag-list-item-nama-unit">${namaUnit}</span> 
+        <span class="tag-list-item-target">target:${target} ${simbolSatuan}</span>
+        <span class="tag-list-item-close">&#10005;</span>`);
         //update data pada tabel
         $(`#table-form-rencana-kerja-baru tr#${rowId} td[name="col-unit"] .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-target', target);
         $(`#table-form-rencana-kerja-baru tr#${rowId} td[name="col-unit"] .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-nama-unit', namaUnit);
         $(`#table-form-rencana-kerja-baru tr#${rowId} td[name="col-unit"] .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-unit-id', unitId);
         $(`#table-form-rencana-kerja-baru tr#${rowId} td[name="col-unit"] .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-institusi-id', institusiId);
         $(`#table-form-rencana-kerja-baru tr#${rowId} td[name="col-unit"] .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-satuan', satuan);
-        $(`#table-form-rencana-kerja-baru tr#${rowId} td[name="col-unit"] .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).html(`<span class="tag-list-item-nama-unit">${namaUnit}</span> <span class="tag-list-item-target">target:${target} ${simbolSatuan} <span class="close">&#10005;</span></span>`);
+        $(`#table-form-rencana-kerja-baru tr#${rowId} td[name="col-unit"] .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).html(`
+        <span class="tag-list-item-nama-unit">${namaUnit}</span> 
+        <span class="tag-list-item-target">target:${target} ${simbolSatuan}</span>
+        <span class="tag-list-item-close">&#10005;</span>`);
         $(`#table-form-rencana-kerja-baru tr#${rowId} td[name="col-unit"] .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).trigger("change");
     }else{
         //menambah data pada modal dan tabel
@@ -620,7 +618,7 @@ $(document).on('click', '#modal-unit .tag-list-item-close', function(evt){
 
     $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).trigger("remove");
     $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).remove();
-    $(this).parent().remove()
+    $(this).closest("li").remove();
 })
 
 

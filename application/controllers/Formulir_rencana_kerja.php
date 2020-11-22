@@ -42,9 +42,9 @@ class Formulir_rencana_kerja extends CI_Controller {
             ]
         ];
         //bpm fitur
-            $data["action_buat_format_formulir"] = site_url()."/formulir_rencana_kerja/form";
-            $data["action_cari_laporan"] = site_url()."/formulir_rencana_kerja/get";
-            $data["action_get_format_formulir"] = site_url()."/formulir_rencana_kerja/get_format_formulir";
+        $data["action_buat_format_formulir"] = site_url()."/formulir_rencana_kerja/form";
+        $data["action_cari_laporan"] = site_url()."/formulir_rencana_kerja/get";
+        $data["action_get_format_formulir"] = site_url()."/formulir_rencana_kerja/get_format_formulir";
         
         $this->load->view('form_rencana_kerja/form_rencana_kerja_individu.php', $data);
     }
@@ -86,7 +86,8 @@ class Formulir_rencana_kerja extends CI_Controller {
         $data["selected_institusi_id"] = $selected_institusi;
         $data["selected_tahun"] = $selected_tahun;
         $data["selected_semester"] = $semester;
-        if($this->session->userdata("hak_akses") == 4){
+        $hak_akses_ketua_unit_biasa = 4;
+        if($this->session->userdata("hak_akses") == $hak_akses_ketua_unit_biasa){
             //ketua unit biasa
             $formulir_rencana_kerja = $this->formulir_rencana_kerja_model->get_laporan_ketua_unit($selected_tahun, $semester, $this->session->userdata("ketua_unit"));
         }else{
@@ -102,7 +103,7 @@ class Formulir_rencana_kerja extends CI_Controller {
                     "genap_crumb" => $genap,
                     "tahun_crumb" => $selected_tahun
         ];
-        $this->load->view('form_rencana_kerja/search_laporan.php',$data);
+        $this->load->view('form_rencana_kerja/formulir_search_laporan.php',$data);
     }
 
     public function form(){
@@ -136,7 +137,18 @@ class Formulir_rencana_kerja extends CI_Controller {
     public function create(){
         $stream_clean = $this->security->xss_clean($this->input->raw_input_stream);
         $request = json_decode($stream_clean);
-        $data = $request->data;
+        $data = null;
+        if(isset($request->data) ){
+            $data = $request->data;
+        }
+        
+        if($data == null){
+            return $this->output
+                ->set_content_type('application/json')
+                ->set_status_header(400)
+                ->set_output(json_encode(["data" => $request]));
+        }
+       
         $error = false;
         $error_response = array();
         
@@ -207,10 +219,15 @@ class Formulir_rencana_kerja extends CI_Controller {
                 $new_kpi_id = null;
                 //create new kpi
                 if($row->kpi->kpiId == ""){
-                    $data_kpi_baru["indikator_id"] = $row->indikator;
-                    $data_kpi_baru["nama_kpi"] = $row->kpi->namaKpi;
-                    $data_kpi_baru["bidang_id"] = $row->bidang;
-                    $new_kpi_id = $this->kpi_model->create($data_kpi_baru);
+                    $kpi_obj = $this->kpi_model->get_by_name($row->indikator, $row->kpi->namaKpi);
+                    if($kpi_obj){
+                        $new_kpi_id = $kpi_obj->id;
+                    }else{
+                        $data_kpi_baru["indikator_id"] = $row->indikator;
+                        $data_kpi_baru["nama_kpi"] = $row->kpi->namaKpi;
+                        $data_kpi_baru["bidang_id"] = $row->bidang;
+                        $new_kpi_id = $this->kpi_model->create($data_kpi_baru);
+                    }
                 }
                 //loop unit
                 foreach($row->unit as $unit){
@@ -232,7 +249,7 @@ class Formulir_rencana_kerja extends CI_Controller {
                             "anggota_unit" => $anggota_unit
                         ];
                         //membuat formulir
-                        $periode_id = $this->periode_model->get_by_year_and_semester($data->tahun, $data->semester)[0]->id;
+                        $periode_id = $this->periode_model->get_array_by_year_and_semester($data->tahun, $data->semester)[0]->id;
                         $array_rencana_kerja_id = $this->formulir_rencana_kerja_model->create_many_formulir($data_unit[$unit->unitId."_".$unit->ketuaUnit], $periode_id);
                         $data_unit[$unit->unitId."_".$unit->ketuaUnit]["formulir_rencana_kerja"] = $array_rencana_kerja_id;   
 
@@ -322,10 +339,12 @@ class Formulir_rencana_kerja extends CI_Controller {
 
 
         //menentuakan view sebagai amin atau user biasa
-        if($this->session->userdata('hak_akses') == 1){
+        $kode_hak_akses_bpm = 1;
+        if($this->session->userdata('hak_akses') == $kode_hak_akses_bpm){
             $this->load->view("form_rencana_kerja/detil_formulir_rencana_kerja_bpm.php", $data);
         }else{
             $unitYangDiketuai = $this->session->userdata("ketua_unit");
+            $isKetua = $this->session->userdata("isKetua");
             $unitFormulir = $formulir->unit_id;
             $userId = $this->session->userdata("id");
             $userFormulir = $formulir->user_id;
@@ -336,12 +355,14 @@ class Formulir_rencana_kerja extends CI_Controller {
             $id_program_studi_si = 24;
             $id_program_studi_akutansi = 32;
             $id_program_studi_manajemen = 33;
-            //unit bukan prodi dan user biasa
-            if($unitYangDiketuai == NULL || ($unitYangDiketuai != $id_program_studi_ti && $unitYangDiketuai != $id_program_studi_mi && $unitYangDiketuai != $id_program_studi_ka && $unitYangDiketuai != $id_program_studi_tk && $unitYangDiketuai != $id_program_studi_si && $unitYangDiketuai != $id_program_studi_manajemen && $unitYangDiketuai != $id_program_studi_akutansi) ){
+            
+            //usecase : hanya unit berasal dari tenaga pengajar yang formulirnya harus divalidasi oleh ketua unitnya
+            if($isKetua == false || ($unitYangDiketuai != $id_program_studi_ti && $unitYangDiketuai != $id_program_studi_mi && $unitYangDiketuai != $id_program_studi_ka && $unitYangDiketuai != $id_program_studi_tk && $unitYangDiketuai != $id_program_studi_si && $unitYangDiketuai != $id_program_studi_manajemen && $unitYangDiketuai != $id_program_studi_akutansi) ){
+                //unit bukan prodi dan user biasa
                 $this->load->view("form_rencana_kerja/detil_formulir_rencana_kerja.php", $data);
             }else{
                 if( ($unitYangDiketuai == $unitFormulir) && ($userId != $userFormulir)){
-                    // bertindak sebagai admin
+                    // ketua unit memvalidasi form anggotanya
                     $this->load->view("form_rencana_kerja/detil_formulir_rencana_kerja_bpm.php", $data);            
                 }else{
                     $this->load->view("form_rencana_kerja/detil_formulir_rencana_kerja.php", $data);
@@ -399,9 +420,9 @@ class Formulir_rencana_kerja extends CI_Controller {
         $formulir = $this->formulir_rencana_kerja_model->get_laporan_by_id($formulir_id);
         $data["title"] = "detil formulir rencana kerja";
         $data["action"] = site_url()."/formulir_rencana_kerja/update_detil_kpi/";
+        $data["action_print"] = site_url()."/formulir_rencana_kerja/print/";
         $data['show_breadcrumb_list'] = "0";
         $data['show_breadcrumb_detil'] = "0";
- 
         $data["action_get_ketidak_tercapaian"] = site_url()."/formulir_rencana_kerja/get_ketidak_tercapaian/";
         $data["error"] = $error;
         $data["breadcrumb"]= [
@@ -439,11 +460,13 @@ class Formulir_rencana_kerja extends CI_Controller {
             $formulir->comment = $comment;
             
             //display menurut role 
-            if($this->session->userdata('hak_akses') == 1){
+            $kode_hak_akses_bpm = 1;
+            if($this->session->userdata('hak_akses') == $kode_hak_akses_bpm){
+                //role : bpm
                 $data["action_terima"] = site_url()."/formulir_rencana_kerja/terima_detil_kpi/";
                 $this->load->view("form_rencana_kerja/detil_formulir_rencana_kerja_bpm.php", $data);
             }else{
-            //unit biasa
+                //role : selaian bpm
                 $this->load->view("form_rencana_kerja/detil_formulir_rencana_kerja.php", $data);            
             }
 
@@ -526,7 +549,7 @@ class Formulir_rencana_kerja extends CI_Controller {
         if($periode_id == null){
             $data["selected_semester"] = $this->input->post('semester') ? $this->input->post('semester') : "2";
             $data["selected_tahun"] = $this->input->post('tahun') ? $this->input->post('tahun') : $data["data_tahun"][0]->tahun;
-            $result_periode = $this->periode_model->get_by_year_and_semester($data["selected_tahun"], $data["selected_semester"]);
+            $result_periode = $this->periode_model->get_array_by_year_and_semester($data["selected_tahun"], $data["selected_semester"]);
             $data["selected_periode"] = $result_periode[0]->id;
         }else{
             $data["selected_periode"] = $periode_id;
@@ -585,7 +608,6 @@ class Formulir_rencana_kerja extends CI_Controller {
         }
         $data["format_formulir"] = $data_format_formulir;
         $data["data_unit_pada_formulir"] = $data_unit_pada_formulir;
-       // print_r($data["format_formulir"]);
        $this->load->view("form_rencana_kerja/detil_format_formulir_rencana_kerja.php", $data);
     }
 
@@ -613,6 +635,11 @@ class Formulir_rencana_kerja extends CI_Controller {
             }
         }
 
+        /**
+         * jika kpi_id_sebelum == null 
+         * Maka artinya operasi berupa penambahan baris baru 
+         * sedangkan, apabila kpi_sebelum != null berarti operasi update data yang sudah ada
+        */
         $kpi_id_sebelum = property_exists($data,"kpi_sebelum") ? $data->kpi_sebelum : null;
         $bidang_id = $data->bidang;
         $sumber = $data->sumber;
@@ -629,7 +656,13 @@ class Formulir_rencana_kerja extends CI_Controller {
             $data_kpi_baru["nama_kpi"] = $data->kpi_baru->nama_kpi;
             $data_kpi_baru["bidang_id"] = $bidang_id;
             $data_kpi_baru["indikator_id"] = $indikator_id;
-            $new_kpi_id = $this->kpi_model->create($data_kpi_baru);
+            
+            $kpi_obj = $this->kpi_model->get_by_name($indikator_id, $data_kpi_baru["nama_kpi"]);
+            if($kpi_obj){
+                $new_kpi_id = $kpi_obj->id;
+            }else {
+                $new_kpi_id = $this->kpi_model->create($data_kpi_baru);
+            }
         }
 
         foreach($unit_removed as $unit_being_removed){
@@ -683,7 +716,7 @@ class Formulir_rencana_kerja extends CI_Controller {
 
         foreach($unit_changed as $unit_being_changed){
             $condition["unit_id"]= $unit_being_changed->unit_id;
-            $condition["formulir_ketua"] = $unit_being_changed->ketua_unit == "" ? "0" : '1';
+            $condition["formulir_ketua"] = $unit_being_changed->ketua_unit == "" ? "0" : "1";
             $formulir_user_for_changed = $this->formulir_rencana_kerja_model->get_formulir_by_unit($periode_id,$condition);
             $formulir_id = [];
             foreach($formulir_user_for_changed as $formulir){
@@ -777,7 +810,7 @@ class Formulir_rencana_kerja extends CI_Controller {
             ]
         ];
         $data["error"] = null;
-        $this->load->view('analisis_ketidak_tercapaian/form.php', $data);
+        $this->load->view('analisis_ketidak_tercapaian/list_analisis_ketidak_tercapaian.php', $data);
     }
 
     public function update_ketidak_tercapaian($detil_id)
@@ -819,7 +852,7 @@ class Formulir_rencana_kerja extends CI_Controller {
                 ]
             ];
             $data["error"] = $error;
-            $this->load->view('analisis_ketidak_tercapaian/form.php', $data);
+            $this->load->view('analisis_ketidak_tercapaian/list_analisis_ketidak_tercapaian.php', $data);
 
         }else{
             $condition["analisis_penyebab"]= $analisis_penyebab;

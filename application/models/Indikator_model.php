@@ -33,11 +33,11 @@ public function update($id,$data)
     return $this->db->affected_rows();
 }
 
-public function get_pencapaian_indikator_by_institusi_and_unit($institusi_id,$unit_id,$is_ketua, $periode_id){
+public function get_pencapaian_indikator_by_unit($unit_id,$is_ketua, $periode_id){
     //user formulir data
     $sql = "
     SELECT 
-        poin_formulir_grouped_by_indikator.formulir_id,
+        poin_formulir_grouped_by_indikator.formulir_id as `id`,
         poin_formulir_grouped_by_indikator.nama_user,
         poin_formulir_grouped_by_indikator.user_id,
         (SUM(poin_formulir_grouped_by_indikator.nilai_pencapaian_kpi) ) as `nilai_pencapaian_formulir`
@@ -69,7 +69,6 @@ public function get_pencapaian_indikator_by_institusi_and_unit($institusi_id,$un
         AND formulir_hasil_bidang_kinerja_utama.user_id = user.id
         AND formulir_hasil_bidang_kinerja_utama.periode_id = $periode_id
         AND formulir_hasil_bidang_kinerja_utama.unit_id = $unit_id
-        AND institusi.id = $institusi_id
         AND formulir_hasil_bidang_kinerja_utama.formulir_ketua = '$is_ketua'
         GROUP BY formulir_hasil_bidang_kinerja_utama.id, indikator_id
     ) as `poin_formulir_grouped_by_indikator`
@@ -79,7 +78,7 @@ public function get_pencapaian_indikator_by_institusi_and_unit($institusi_id,$un
 
 }
 
-public function get_statistic_pencapaian_indikator_by_institusi_and_unit($institusi_id, $unit_id,$is_ketua, $array_periode){
+public function get_statistic_pencapaian_indikator_by_unit($unit_id,$is_ketua, $array_periode){
     $strPeriode = join(",", $array_periode);
     $sql = "
     SELECT 
@@ -130,7 +129,6 @@ public function get_statistic_pencapaian_indikator_by_institusi_and_unit($instit
             AND formulir_hasil_bidang_kinerja_utama.periode_id = periode.id
             AND formulir_hasil_bidang_kinerja_utama.periode_id IN ( $strPeriode )
             AND formulir_hasil_bidang_kinerja_utama.unit_id = $unit_id
-            AND institusi.id = $institusi_id
             AND formulir_hasil_bidang_kinerja_utama.formulir_ketua = '$is_ketua'
             GROUP BY formulir_hasil_bidang_kinerja_utama.id, indikator_id
         ) as `poin_formulir_grouped_by_indikator`

@@ -1,149 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="">
-  <meta name="author" content="">
+<?php $hak_akses_bpm = 1; ?>
 
-  <title><?=$title;?></title>
-  <!--Global CSS-->
-  <link href=<?php echo base_url()."assets/css/global.css";?> rel="stylesheet"/>
-</head>
-<body>
-    <?php $this->load->view('template/header.php');?>
+<!-- HEADER -->
+<?php $this->load->view('partials/header.php', [
+  "title" => "Dashboard KPI Unit"
+]);?> 
 
-    <main>
-        <?php $this->load->view('template/sidebar/sidebar_bpm.php');?>
-        <section class="page-content" id="page-dashboard-kpi">
-            <div class="content-title">
-                <div class="page-title">
-                    <h3> <i class="fas fa-tachometer-alt"></i> Pencapain 
-                    <form id="ubah-kpi" action="<?=$action_lihat_kpi_unit;?>" style="display: inline-block;" method="post">
-                        <!-- for bread crumb -->
-                        <?php if(isset($show_bread_crumb_institusi)) : ?>
-                        <?php if($show_bread_crumb_institusi == "1" ) :?>
-                                    <input type="hidden" name="show_bread_crumb_institusi" value="1"/>
-                                    <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
-                                    <input type="hidden" name="periode_id_institusi" value="<?=$selected_periode_tahun_semester_institusi;?>"/>
-                                    <input type="hidden" name="renstra_periode_institusi" value="<?=$selected_renstra_periode_institusi;?>"/>
-                                    <input type="hidden" name="sumber_id" value="<?=$selected_sumber;?>"/>
-                        <?php endif;?>
-                        <?php endif;?>
+<main>
+    <!-- SIDEBAR -->
+    <?php $this->load->view('template/sidebar/sidebar_bpm.php');?>
 
-                        <?php if(isset($mode_individu)) : ?>
-                        <?php if($mode_individu) : ?>
-                            <input type="hidden" name="mode_individu" value="<?=$mode_individu;?>"/>
-                        <?php endif;?>
-                        <?php endif;?>
+    <section class="page-content" id="page-dashboard-kpi">
 
-                        <input type="hidden" name="unit_id" value="<?=$selected_unit;?>"/>
-                        <input type="hidden" name="ketua_unit" value="<?=$ketua_unit;?>"/>
-                        <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
-                        <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
-                        <select name="sumber_id" id="sumber_id" class="toolbar toolbar-white">
-                            <?php $indexsumber = 0; foreach($data_sumber as $sumber) : $indexsumber++;?>
-                                <option <?=$selected_sumber == $sumber->id ? "selected" : "";?> value="<?=$sumber->id;?>">
-                                    <?=$sumber->nama_sumber;?>
-                                </option>
-                            <?php endforeach;?>
-                        </select>
-                    </form>
-                    
-                    <form id="ubah-unit" action="<?=$action_lihat_kpi_unit;?>" style="display: inline-block;" method="post">
-                        <?php if(isset($mode_individu)) : ?>
-                        <?php if($mode_individu) : ?>
-                            <input type="hidden" name="mode_individu" value="<?=$mode_individu;?>"/>
-                        <?php endif;?>
-                        <?php endif;?>
-
-                        <!-- for bread crumb -->
-                        <?php if(isset($show_bread_crumb_institusi)) : ?>
-                        <?php if($show_bread_crumb_institusi == "1" ) :?>
-                                    <input type="hidden" name="show_bread_crumb_institusi" value="1"/>
-                                    <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
-                                    <input type="hidden" name="periode_id_institusi" value="<?=$selected_periode_tahun_semester_institusi;?>"/>
-                                    <input type="hidden" name="renstra_periode_institusi" value="<?=$selected_renstra_periode_institusi;?>"/>
-                                    <input type="hidden" name="sumber_id" value="<?=$selected_sumber;?>"/>
-                        <?php endif;?>
-                        <?php endif;?>
-
-                        <input type="hidden" name="sumber_id" value="<?=$selected_sumber;?>"/>
-                        <input type="hidden" name="ketua_unit" value="<?=$ketua_unit;?>"/>
-                        <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
-                        <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
-                        <select name="unit_id" class="toolbar toolbar-white">
-                        <?php if ($this->session->userdata("hak_akses") == 1 && $mode_individu == false) : ?>
-                                <?php $indexUnit = 0; foreach($data_unit as $unit): $indexUnit++;?>
-                                    <?php if($unit->jumlah_anggota == 0) :?>
-                                        <option ketua-unit="1" value="<?=$unit->id;?>" <?= $unit->id == $selected_unit && $ketua_unit == "1" ? "selected" : "";?> >
-                                            <?=$unit->nama_unit;?>
-                                        </option>
-
-                                    <?php else :?>
-                                        <option ketua-unit="1" value="<?=$unit->id;?>" <?= $unit->id == $selected_unit && $ketua_unit == "1" ? "selected" : "";?> >
-                                        <?="Ketua ".$unit->nama_unit;?>
-                                        </option>
-                                        <option ketua-unit="0" value="<?=$unit->id;?>" <?= $unit->id == $selected_unit && $ketua_unit == "0" ? "selected" : "";?> >
-                                        <?=$unit->tenaga_pengajar == "1" ? "Dosen ".$unit->nama_unit : $unit->nama_unit;?>
-                                        </option>
-                                    <?php endif; ?>
-                                    <?php endforeach;?>
-                                <?php else : ?>
-                                    <?php $indexUnit = 0; foreach($data_unit as $unit): $indexUnit++;?>
-                                    <option 
-                                        view="<?=$unit->view;?>"
-                                        value="<?=$unit->unit_id;?>" 
-                                        ketua-unit="<?=$unit->ketua == "1" ? "1" : "0";?>" 
-                                        <?= ($ketua_unit == $unit->ketua  && $unit->unit_id == $selected_unit) ? "selected" : "";?>>
-                                        <?=$unit->tenaga_pengajar == "1" && $unit->ketua != "1" ? "Dosen ".$unit->nama_unit : $unit->nama_unit;?>
-                                    </option>
-                                    <?php endforeach;?>
-                                <?php endif;?> 
-                        </select>
-                    </form>
-
-                    <?php if($ketua_unit != '1' && $this->session->userdata("ketua_unit") == $selected_unit && $this->session->userdata("unit_id") == $selected_unit ) : ?>
-                        <?php if(isset($mode_individu)) : ?>
-                        <?php if($mode_individu) : ?>
-                            <input type="hidden" name="mode_individu" value="<?=$mode_individu;?>"/>
-                        <?php endif;?>
-                        <?php endif;?>
-
-                        <!-- lihat sebagai unit atau user-->
-                        <form id="form-versi" method="post" style="display:inline;">
-                            <input type="hidden" value="<?=$ketua_unit;?>" name="ketua_unit"/>
-                            <input type="hidden" value="<?=$selected_unit;?>" name="unit_id"/>
-                            <input type="radio" value="unit" name="versi" <?=$versi=="unit" ? "checked" :"";?>/> <span style="padding:10px;"> Unit </span> 
-                            <input type="radio" value="individu" name="versi" <?=$versi=="individu" ? "checked" :"";?>/> <span style="padding:10px;"> User </span> 
-                        </form>
-                    <?php endif;?>
-                   
-                </h3> 
-                </div>
-            </div>
-
-                <!-- breadcrumb -->
-            <?php if(isset($show_bread_crumb_institusi)) : ?>
-            <?php if($show_bread_crumb_institusi == "1" ) :?>
-            <ul class="breadcrumb">
-                <?php $indexBread=0; foreach($breadcrumb as $crum): $indexBread++;?>
-                    <li>
-                    <form action="<?=$crum['url']?>" method="post">
-                    <!-- for bread crumb -->
-                        <input type="hidden" name="show_bread_crumb_institusi" value="1"/>
-                        <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
-                        <input type="hidden" name="periode_id_institusi" value="<?=$selected_periode_tahun_semester_institusi;?>"/>
-                        <input type="hidden" name="renstra_periode_institusi" value="<?=$selected_renstra_periode_institusi;?>"/>
-                        <input type="hidden" name="sumber_id" value="<?=$selected_sumber;?>"/>
-                        <input type="submit" value="<?=$crum['name']?>"/>
-                    </form>
-                    </li>
-                <?php endforeach;?>
-            </ul>
-            <?php endif;?>
-            <?php endif;?>
+        <!-- CONTENT TITLE -->    
+        <?php $this->load->view("kpi/template/content_title_dashboard_kpi_unit.php", [
+            "action_lihat_kpi_unit" => $action_lihat_kpi_unit,
+            "show_bread_crumb_institusi" => isset($show_bread_crumb_institusi) ? $show_bread_crumb_institusi : NULL,
+            "selected_institusi" => isset($selected_institusi) ? $selected_institusi : NULL,
+            "selected_periode_tahun_semester_institusi" => isset($selected_periode_tahun_semester_institusi) ? $selected_periode_tahun_semester_institusi : NULL,
+            "selected_renstra_periode_institusi" => isset($selected_renstra_periode_institusi) ? $selected_renstra_periode_institusi : NULL,
+            "selected_sumber" => isset($selected_sumber) ? $selected_sumber : NULL,
+            "mode_individu" => isset($mode_individu) ? $mode_individu : NULL,
+            "selected_unit" => $selected_unit,
+            "ketua_unit" => $ketua_unit,
+            "selected_periode_tahun_semetser" => $selected_periode_tahun_semetser,
+            "selected_renstra_periode" => $selected_renstra_periode,
+            "data_sumber" => $data_sumber,
+            "selected_sumber" => $selected_sumber,
+            "data_unit" => $data_unit,
+            "versi" => $versi
+        ]);?>
+        
+        <!-- BREAD CRUMB -->
+        <?php $this->load->view("kpi/template/breadcrumb_dashboard_kpi_unit.php",[
+            "show_bread_crumb_institusi" => isset($show_bread_crumb_institusi) ? $show_bread_crumb_institusi : NULL,
+            "breadcrumb" => isset($breadcrumb) ? $breadcrumb : NULL,
+            "selected_institusi" => isset($selected_institusi) ? $selected_institusi : NULL,
+            "selected_periode_tahun_semester_institusi" => isset($selected_periode_tahun_semester_institusi) ? $selected_periode_tahun_semester_institusi : NULL,
+            "selected_renstra_periode_institusi" => isset($selected_renstra_periode_institusi) ? $selected_renstra_periode_institusi : NULL,
+            "selected_sumber" => isset($selected_sumber) ? $selected_sumber : NULL
+        ]);?>
 
         <div class="flex-row">
             <!-- pie chart -->
@@ -246,7 +141,7 @@
                             <tr>
                                 <td><?=$indexAnggota;?></td>
                                 <td>
-                                   <?=$data_anggota->nama_user;?>
+                                    <?=$data_anggota->nama_user;?>
                                 </td>
                                 <td><?=$data_anggota->nilai_pencapaian;?></td>
                                 <td>
@@ -304,19 +199,15 @@
                 </div>
             </div>
         </div>
+    </section>
+</main>
 
-        </section>
-    </main>
-</body>
-<!-- Jquery -->
-<script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
-<!-- Font Awsome -->
-<script src="https://kit.fontawesome.com/60acd380e3.js" crossorigin="anonymous"></script>
-<!-- ChartJs -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.js" crossorigin="anonymous"></script>
-
-<!-- Own js file for global setting -->
-<script src=<?php echo base_url()."assets/js/global.js";?>></script>
+<!-- FOOTER -->
+<?php $this->load->view("partials/footer.php", [
+    "js" => [
+        "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.js"
+    ]
+]) ;?>
 
 <script>
 $(document).ready(function(){
@@ -327,32 +218,14 @@ let urlUnit = JSON.parse('<?php echo json_encode($action_lihat_kpi_unit);?>');
 let urlInstitusi = JSON.parse('<?php echo json_encode($action_lihat_kpi_institusi);?>');
 let urlUser = JSON.parse('<?php echo json_encode($action_lihat_kpi_user);?>');
 //data untuk pie chart
-let dataKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_kinerja_saat_ini);?>');
+let dataKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_kinerja);?>');
 //data untuk bar chart
-let dataDetilKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_detil_kinerja_saat_ini)?>');
+let dataDetilKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_detil_kinerja)?>');
 //data untuk line chart
 let dataStatistikKinerja = JSON.parse('<?php echo json_encode($data_kinerja_statistik); ?>');
 
 let keteranganPeriode = JSON.parse('<?php echo json_encode($keteranganperiode);?>');
 let renstraPeriode = JSON.parse('<?php echo  is_null($selected_obj_renstra_periode) ? "" : json_encode($selected_obj_renstra_periode); ?>');
-
-let colors = [ 
-     '#4661EE',
-     '#EC5657',
-     '#1BCDD1',
-     '#8FAABB',
-     '#B08BEB',
-     '#3EA0DD',
-     '#F5A52A',
-     '#23BFAA',
-     '#FAA586',
-     '#EB8CC6',
-     "#2F4F4F",
-    "#008080",
-    "#2E8B57",
-    "#3CB371",
-    "#90EE90"
-];
 
 //form : ubah - kpi 
 $(document).on('change', 'select[name="sumber_id"]', function(){
@@ -581,6 +454,4 @@ if(renstraPeriode){
         }
     });
 }
-
 </script>
-</html>

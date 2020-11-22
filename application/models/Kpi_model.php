@@ -24,12 +24,20 @@ public function get_all(){
      return $query->result();
 }
 
-public function get_by_name ($indikator, $name)
+public function get_like_by_name ($indikator, $name)
 { 
     $sql = "SELECT * FROM ".$this->table_name." WHERE indikator_id=".$indikator." AND nama_kpi LIKE "."'%".(string)$name."%'";
     $query = $this->db->query($sql);
     return $query->result();
 }
+
+public function get_by_name ($indikator, $name)
+{ 
+    $sql = "SELECT * FROM ".$this->table_name." WHERE indikator_id=".$indikator." AND nama_kpi = '".$name."'";
+    $query = $this->db->query($sql);
+    return $query->row();
+}
+
 
 public function create($data)
 {

@@ -1,3 +1,22 @@
+//color of charts
+let colors = [ 
+    '#4661EE',
+    '#EC5657',
+    '#1BCDD1',
+    '#8FAABB',
+    '#B08BEB',
+    '#3EA0DD',
+    '#F5A52A',
+    '#23BFAA',
+    '#FAA586',
+    '#EB8CC6',
+    "#2F4F4F",
+   "#008080",
+   "#2E8B57",
+   "#3CB371",
+   "#90EE90"
+];
+
 /* sidebar */
 let widthSidebar = 250;
 $(document).ready(function(){
@@ -99,6 +118,7 @@ function tablePagination(idTable){
     });
 
     $(document).on('keyup','#tableSearch',function(evt){
+        console.log("trigger");
         currentPage = 1;
         filterHideShowRow()
     })
@@ -155,6 +175,17 @@ function tablePagination(idTable){
                         return false;
                     }
                 }
+
+                //untuk cell yang memiliki row berupa button input submit 
+                if($(this).find('input[type="submit"]').length !== 0){
+                    if($(this).find('input[type="submit"]').val().toLowerCase().includes(keywordSearch.toLowerCase())){
+                        numberOfDataFound++;
+                        showTr = true;
+                        $(this).closest("tr").show();
+                        return false;
+                    }
+                }
+
             })
            if(!showTr){
                 $(this).hide();
@@ -173,9 +204,6 @@ function tablePagination(idTable){
             }
             trNums++;
         });
-        console.log(trNums)
-        console.log(startIndexToShow)
-        console.log(endIndexToShow)
 
         $('#numberOfDataFound').text(numberOfDataFound);
         if( numberOfDataFound > maxRowToShowPerPage){

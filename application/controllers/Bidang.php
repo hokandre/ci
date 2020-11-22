@@ -2,50 +2,286 @@
 
 defined('BASEPATH') OR exit('No direct script access allowed ');
 
-include 'ChromePhp.php';
-
-function sort_descending_by_score($form_unit_1, $form_unit_2){
-    $form1Score  = ($form_unit_1->score / $form_unit_1->MAX_SCORE  ) * 100;
-    $form2Score  = ($form_unit_2->score / $form_unit_2->MAX_SCORE  ) * 100;
-
-    if($form1Score == $form2Score){
-        return 0;
-    }
-
-    return ($form1Score > $form2Score ) ? -1 : 1;
-}
-
 class Bidang extends CI_Controller 
 {
 
 public function __construct()
 {
     parent::__construct();
+
+    if (!$this->session->userdata("logged")){
+        redirect("/auth/login");
+    }
+
     $this->load->database();
     $this->load->model('bidang_model');
-    $this->load->helper(array('form', 'url'));
+    $this->load->helper(array('form', 'url',"util_helper","unit_helper","breadcrumb_helper","kinerja_helper"));
     $this->load->model('institusi_model');
     $this->load->model('renstra_periode_model');
     $this->load->model('periode_model');
     $this->load->model('unit_model');
     $this->load->model('user_model');
+
+    //db data
+    $this->data_institusi = [];
+    $this->data_bidang = [];
+    $this->data_renstra = [];
+    $this->data_periode = [];
+    $this->data_unit = [];
+
+    //authentication role
+    $this->mode_individu = "1"; //true
+    $this->institusi_id = null;
+    $this->obj_institusi = null;
+    $this->unit_id = null;
+    $this->obj_unit = null;
+    $this->formulir_ketua = "0"; //mencari data ketua unit
+    $this->user_id = null;
+    $this->obj_user = null;
+
+    //periode data
+    $this->obj_renstra = null;
+    $this->renstra_id = null;
+    $this->obj_periode = null;
+    $this->periode_id = null;
+
+    //data 
+    $this->obj_bidang = null;
+    $this->bidang_id = null;
+    $this->crumb_institusi = "0";
+    $this->data_crumb_institusi = [
+        "periode_id_institusi" => "",
+        "renstra_id_institusi" => "",
+        "url" => site_url()."/bidang/pencapaian_institusi"
+    ];
+    $this->crumb_unit = "0";
+    $this->data_crumb_unit = [
+        "periode_id_unit" => "",
+        "renstra_id_unit" => "",
+        "url" => site_url()."/bidang/pencapaian_unit"
+    ];
+
+    //accumulation data
+    $this->data_kinerja = (object) [
+        "persen_tercapai" => 0,
+        "persen_tidak_tercapai" => 100,
+        "nilai_tercapai" => 0,
+        "nilai_maksimal" => 100,
+        "nilai_tidak_tercapai" => 100
+    ];
+    $this->data_kinerja_anggota = [];
+    $this->data_detil_kinerja = [];
+    $this->data_statistik_kinerja = [];
+}
+
+/* up */
+private function set_mode_individu($mode_individu){
+    if($mode_individu == null || $mode_individu == "1") {
+        $this->mode_individu = "1";
+    }else {
+        $this->mode_individu = "0";
+    }
+}
+
+private function set_institusi($institusi_id){
+    if($institusi_id == null){
+        $this->obj_institusi = $this->data_institusi[0];
+        $this->institusi_id = $this->obj_institusi->id;
+    }else {
+        $this->institusi_id = $institusi_id;
+        $this->obj_institusi = $this->institusi_model->get_by_id($institusi_id);
+    }
+}
+
+private function set_unit($unit_id){
+    if($unit_id == null){
+        $this->obj_unit = $this->data_unit[0];
+        $this->unit_id = $this->obj_unit->id;
+    }else {
+        $this->unit_id = $unit_id;
+        $this->obj_unit = $this->unit_model->get_by_id($unit_id);
+    }
+}
+
+private function set_user_id($user_id){
+    if($user_id == null) {
+
+    }else {
+        $obj_user = $this->user_model->get_user_by_id($user_id);
+        if($obj_user != null) {
+            $this->user_id = $user_id;
+            $this->obj_user = $obj_user;
+        }
+    }
+}
+
+private function set_data_unit($mode_individu){
+    if($this->session->userdata("nama_hak_akses") != "admin"){
+       $this->data_unit = $this->session->userdata("all_unit_user");
+    }else if($mode_individu == "1") {
+        $this->data_unit = $this->session->userdata("all_unit_user");
+    }else{
+        $data_unit_anggota = $this->unit_model->get_unit_by_institusi_id($this->institusi_id);
+        $data_unit_ketua = $this->unit_model->get_unit_ketua_by_institusi_id($this->institusi_id);
+        foreach($data_unit_ketua as $unit_ketua){
+            array_push($data_unit_anggota, $unit_ketua);
+        }
+        $this->data_unit = $data_unit_anggota;
+    }
+}
+
+private function set_formulir_ketua($formulir_ketua){
+    if($formulir_ketua != null || $formulir_ketua == "1"){
+        $this->formulir_ketua = $formulir_ketua;
+    } 
+}
+
+private function set_bidang($selected_bidang){
+    if($selected_bidang == null){
+        $this->obj_bidang = $this->data_bidang[0];
+        $this->bidang_id = $this->obj_bidang->id;
+    }else {
+        $this->bidang_id = $selected_bidang;
+        $this->obj_bidang = $this->bidang_model->get_by_id($selected_bidang);
+    }
+}
+
+private function set_renstra_periode($selected_renstra_periode){
+    if($selected_renstra_periode == null){
+        $this->renstra_id = $this->data_renstra[0]->id;
+        $this->obj_renstra = $this->data_renstra[0];
+    }else{
+        $this->renstra_id = $selected_renstra_periode;
+        $this->obj_renstra = $this->renstra_periode_model->get_by_id($selected_renstra_periode);
+    }
+}
+
+private function set_periode($string_tahun_semester){
+    if($string_tahun_semester == null) {
+        $array_periode = $this->periode_model->get_by_start_year_and_end_year($this->obj_renstra->tahun_awal, $this->obj_renstra->tahun_akhir);
+        $this->obj_periode = $array_periode[0];
+        $this->periode_id = $this->obj_periode->id;
+    }else{
+        $split_tahun_semester = explode("-", $string_tahun_semester);
+        $tahun = $split_tahun_semester[0];
+        $semester = $split_tahun_semester[1];
+        $obj_periode = $this->periode_model->get_row_by_year_and_semester($tahun, $semester);
+        if($obj_periode != null ) {
+            $this->obj_periode = $obj_periode;
+            $this->periode_id = $this->obj_periode->id;
+        }
+    }
+}
+
+private function set_crumb_institusi($show_bread_crumb_institusi){
+    if($show_bread_crumb_institusi == "1"){
+        $this->crumb_institusi = "1";
+        $this->data_crumb_institusi["periode_id_institusi"] = $this->input->post("periode_id_institusi");
+        $this->data_crumb_institusi["renstra_id_institusi"] = $this->input->post("renstra_id_institusi");
+    }
+}
+
+private function set_crumb_unit($show_bread_crumb_unit){
+    if($show_bread_crumb_unit == "1"){
+        $this->crumb_unit = "1";
+        $this->data_crumb_unit["periode_id_unit"] = $this->input->post("periode_id_unit");
+        $this->data_crumb_unit["renstra_id_unit"] = $this->input->post("renstra_id_unit");
+    }
+}
+
+private function set_data_kinerja($data_kinerja){
+    $this->data_kinerja = $data_kinerja;
+}
+
+private function set_data_kinerja_anggota($formulir_anggota){
+   if(sizeof($formulir_anggota) != 0 && $formulir_anggota != null) {
+        $this->data_kinerja_anggota = $formulir_anggota;
+   }
+}
+
+private function set_data_detil_kinerja($array_formulir){
+    if(sizeof($array_formulir) != 0 && $array_formulir != null) {
+        $this->data_detil_kinerja = $array_formulir;
+   }
+}
+
+private function set_data_statistik_kinerja($data_statisik){
+    $this->data_statistik_kinerja = $data_statisik;
+}
+
+private function get_periode_id_by_year($tahun_awal, $tahun_akhir){
+    $rentang_periode_id = $this->periode_model->get_by_start_year_and_end_year($tahun_awal, $tahun_akhir);
+    if(sizeof($rentang_periode_id) != 0){
+        $array_periode_id = [];
+        foreach($rentang_periode_id as $periode){
+            array_push($array_periode_id, $periode->id);
+        }
+
+       return $array_periode_id;
+    }
+
+    return null;
+}
+
+
+private function display($view_name){
+    $data_view = [
+        "data_aksi" => [
+            'action_lihat_bidang_institusi' =>  site_url()."/bidang/pencapaian_institusi",
+            'action_lihat_bidang_unit' => site_url()."/bidang/pencapaian_unit",
+            'action_lihat_bidang_user' => site_url()."/bidang/pencapaian_user"
+        ],
+        "data_institusi" => $this->data_institusi,
+        "data_bidang" => $this->data_bidang,
+        "data_renstra" => $this->data_renstra,
+        "data_periode" => $this->data_periode,
+        "data_unit" => $this->data_unit,
+        "mode_individu" => $this->mode_individu = "1",
+        "institusi_id" => $this->institusi_id,
+        "obj_institusi" => $this->obj_institusi,
+        "unit_id" => $this->unit_id,
+        "obj_unit" => $this->obj_unit,
+        "user_id" => $this->user_id,
+        "obj_user" => $this->obj_user,
+        "formulir_ketua" => $this->formulir_ketua,
+        "obj_renstra" => $this->obj_renstra,
+        "renstra_id" => $this->renstra_id, 
+        "obj_periode" => $this->obj_periode,
+        "periode_id" => $this->obj_periode != null ? $this->obj_periode->tahun."-".$this->obj_periode->semester : null,
+        "obj_bidang" => $this->obj_bidang,
+        "bidang_id" => $this->bidang_id,
+        "crumb_institusi" => $this->crumb_institusi,
+        "data_crumb_institusi" => $this->data_crumb_institusi,
+        "crumb_unit" => $this->crumb_unit,
+        "data_crumb_unit" => $this->data_crumb_unit,
+        "data_kinerja" => $this->data_kinerja,
+        "data_kinerja_anggota" => $this->data_kinerja_anggota,
+        "data_detil_kinerja" => $this->data_detil_kinerja,
+        "data_statistik_kinerja" => $this->data_statistik_kinerja,
+        "keterangan_periode" => $this->obj_periode !== null ? 
+        ($this->obj_periode->semester == "1" ?
+            "September ".($this->obj_periode->tahun)." - Februari ".($this->obj_periode->tahun+1) 
+                :
+            "Maret ".($this->obj_periode->tahun+1)." - Agustus ".($this->obj_periode->tahun+1)
+        ) 
+            :
+        "Data Periode Belum Ada"
+    ];
+    $this->load->view($view_name, $data_view);
 }
 
 public function index($error=null)
 {
-    $result = $this->bidang_model->get();
-    $data["data_bidang"] = $result;
-    $data["action_add"] = site_url()."/bidang/add";
-    $data["action_update"] = site_url()."/bidang/update/";
-    //bpm
-    $data["action_lihat_pencapain"] = site_url()."/bidang/pencapaian_institusi";
-    //user
-    if($this->session->userdata("hak_akses") != 1){
-        $data["action_lihat_pencapain"] = site_url()."/bidang/pencapaian_user";
-    }
-    $data["title"] = "Bidang KPI";
-    $data["error"] = $error;
-    $this->load->view('form_bidang/index.php', $data);
+    $nama_hak_akses = $this->session->userdata("nama_hak_akses");
+   if($nama_hak_akses == "admin") {
+       $this->pencapaian_institusi();
+   }else if($nama_hak_akses == "manajemen"){
+       $this->pencapaian_user();
+   }else if($nama_hak_akses == "ketua"){
+       $this->pencapaian_unit();
+   }else {
+       $this->pencapaian_user();
+   }
 }
 
 public function add()
@@ -78,587 +314,161 @@ public function update($bidang_id){
 }
 
 public function pencapaian_institusi(){
-    $selected_institusi = $this->input->post("institusi_id");
-    $selected_bidang = $this->input->post("bidang_id");
-    $selected_periode_tahun_semetser = $this->input->post("periode_id");
-    $selected_renstra_periode = $this->input->post("renstra_periode");
-    $show_bread_crumb_institusi = $this->input->post("show_bread_crumb_institusi");
+    $this->data_institusi = $this->institusi_model->get();
+    $this->data_bidang = $this->bidang_model->get();
+    $this->data_renstra = $this->renstra_periode_model->get_all();
+    $this->data_periode = $this->periode_model->get();
 
+    $mode_individu = $this->input->post("mode_individu");
+    $this->set_mode_individu($mode_individu);
 
-    if($show_bread_crumb_institusi == "1"){
-        $selected_bread_crumb_periode = $this->input->post("periode_id_institusi");
-        $selected_bread_crumb_renstra_periode = $this->input->post("renstra_periode_institusi");
-        
-        $selected_periode_tahun_semetser = $selected_bread_crumb_periode;
-        $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-        $selected_renstra_periode = $selected_bread_crumb_renstra_periode;
-        $data['selected_renstra_periode'] = $selected_renstra_periode;
-    }
+    $intitusi_id = $this->input->post("institusi_id");
+    $this->set_institusi($intitusi_id);
 
-    $data['title'] = "Pencapaian Bidang";
-    $data['selected_institusi'] = $selected_institusi;
-    $data['nama_institusi'] = "";
-    $data['selected_bidang'] = $selected_bidang;
-    $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-    $data['selected_renstra_periode'] = $selected_renstra_periode;
-    $data['data_institusi'] = $this->institusi_model->get();
-    $data['data_bidang'] =  $this->bidang_model->get();
-    $data['data_renstra_periode'] = $this->renstra_periode_model->get_all();
-    $data['data_periode'] = $this->periode_model->get ();
-    $data['selected_obj_renstra_periode'] = $data['data_renstra_periode'][0];
-    $data['action_lihat_bidang_institusi'] = site_url()."/bidang/pencapaian_institusi";
-    $data['action_lihat_bidang_unit'] = site_url()."/bidang/pencapaian_unit";
-    $data['action_lihat_bidang_user'] = site_url()."/bidang/pencapaian_user";
+    $renstra_id = $this->input->post("renstra_periode");
+    $this->set_renstra_periode($renstra_id);
 
-    $selected_periode_id =  $data['data_periode'][0]->id;
+    $string_tahun_semester = $this->input->post("periode_id");
+    $this->set_periode($string_tahun_semester);
 
-    if($selected_periode_tahun_semetser == null && $selected_renstra_periode == null){
-       
-        $selected_renstra_periode = $data['data_renstra_periode'][0]->id;
-        $data['selected_renstra_periode'] = $selected_renstra_periode;
-        $array_periode_id = $this->periode_model->get_by_start_year_and_end_year($data['selected_obj_renstra_periode']->tahun_awal, $data['selected_obj_renstra_periode']->tahun_akhir);
-        if(sizeof($array_periode_id) != 0){
-            $selected_periode_tahun_semetser = $array_periode_id[0]->tahun."-".$array_periode_id[0]->semester;
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-            $selected_periode_id = $array_periode_id[0]->id;
-        }else{
-            //default value periode belum ada
-            $selected_periode_tahun_semetser = $data['selected_obj_renstra_periode']->tahun_awal."-"."1";
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-        }
-    }elseif($selected_renstra_periode != null && $selected_periode_tahun_semetser != null){
-        $year = explode("-", $selected_periode_tahun_semetser)[0];
-        $semester = explode("-", $selected_periode_tahun_semetser)[1];
+    $bidang_id = $this->input->post("bidang_id");
+    $this->set_bidang($bidang_id);
 
-        $cur_periode = $this->periode_model->get_by_year_and_semester($year, $semester);
-        $selected_periode_id = $cur_periode[0]->id;
-        $data['selected_obj_renstra_periode'] = $this->renstra_periode_model->get_by_id($selected_renstra_periode);
-    }elseif($selected_renstra_periode != null && $selected_periode_tahun_semetser == null){
-        $data['selected_obj_renstra_periode'] = $this->renstra_periode_model->get_by_id($selected_renstra_periode);
-        $array_periode_id = $this->periode_model->get_by_start_year_and_end_year($data['selected_obj_renstra_periode']->tahun_awal, $data['selected_obj_renstra_periode']->tahun_akhir);
-        if(sizeof($array_periode_id) != 0){
-            $selected_periode_tahun_semetser = $array_periode_id[0]->tahun."-".$array_periode_id[0]->semester;
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-            $selected_periode_id = $array_periode_id[0]->id;
-        }else{
-            //default value periode belum ada
-            $selected_periode_tahun_semetser = $data['selected_obj_renstra_periode']->tahun_awal."-"."1";
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
+    if( $this->obj_periode != null ){
+        //pie chart
+        $formulir_unit_anggota = $this->bidang_model->get_formulir_unit_anggota_institusi($this->bidang_id,$this->institusi_id, $this->periode_id);
+        if(sizeof($formulir_unit_anggota) != 0 ) {
+            $this->set_data_kinerja_anggota($formulir_unit_anggota);
+            $this->set_data_detil_kinerja($formulir_unit_anggota);
+            $kinerja_institusi = hitung_pencapaian_institusi($formulir_unit_anggota);
+            if($kinerja_institusi !== null) $this->set_data_kinerja($kinerja_institusi);
         }
     }
 
-    if($selected_bidang == null){
-        $selected_bidang =  $data['data_bidang'][0]->id;
-        $data['selected_bidang'] = $selected_bidang;
+    if($this->obj_renstra != null) {
+        $id_periode_5_tahun = $this->get_periode_id_by_year($this->obj_renstra->tahun_awal, $this->obj_renstra->tahun_akhir); 
+        $statistik_kinerja = $this->bidang_model->get_statistic_pencapaian_bidang_by_institusi_and_periode($this->bidang_id, $this->institusi_id, $id_periode_5_tahun);
+        if(sizeof($statistik_kinerja) != 0 ) $this->set_data_statistik_kinerja($statistik_kinerja);
     }
 
-    if($selected_institusi == null){
-        $selected_institusi = $data['data_institusi'][0]->id;
-        $data['selected_institusi'] =  $selected_institusi;
-        $data['nama_institusi'] = $data['data_institusi'][0]->nama_institusi;
-    }else {
-        $objInstitusi = $this->institusi_model->get_by_id($selected_institusi);
-        if(isset($objInstitusi)){
-            $data['nama_institusi'] = $objInstitusi->nama_institusi;
-        }    
-    }
-
-    $data["data_kinerja_saat_ini"] = (object) [
-        "tercapai" => 0,
-        "tidak_tercapai" => 100, 
-        "actual_score" => 0,
-        "max_score" => 0,
-        "minus_score" => 0 
-    ];
-    $data["data_kinerja_anggota"] = [];
-    $data["data_detil_kinerja_saat_ini"] = [];
-    $data["data_kinerja_statistik"] = [];
-   
-    $array_formulir = $this->bidang_model->get_pencapaian_bidang_by_institusi_and_periode($selected_bidang,$selected_institusi, $selected_periode_id);
-    if(sizeof($array_formulir) != 0){
-       $maximum_score = sizeof($array_formulir) * 100;
-       $actual_score = 0;
-       foreach($array_formulir as $formulir) {
-           $actual_score += ($formulir->score / $formulir->MAX_SCORE) * 100;
-           $formulir->persen_ketercapaian = ($formulir->score / $formulir->MAX_SCORE) * 100;
-       }
-
-       $data["data_kinerja_saat_ini"]->tercapai = ($actual_score / $maximum_score) * 100;
-       $data["data_kinerja_saat_ini"]->tidak_tercapai =  $data["data_kinerja_saat_ini"]->tidak_tercapai - $data["data_kinerja_saat_ini"]->tercapai;
-       $data["data_kinerja_saat_ini"]->actual_score = $actual_score;
-       $data["data_kinerja_saat_ini"]->max_score = $maximum_score;
-       $data["data_kinerja_saat_ini"]->minus_score = $maximum_score - $actual_score;
-       usort($array_formulir, "sort_descending_by_score");
-       $data["data_kinerja_anggota"] = $array_formulir;
-       $data["data_detil_kinerja_saat_ini"] = $array_formulir;
-    }
-
-     // rentang waktu 5 tahun        
-     if($selected_renstra_periode != null){
-        $rentang_periode_id = $this->periode_model->get_by_start_year_and_end_year($data['selected_obj_renstra_periode']->tahun_awal, $data['selected_obj_renstra_periode']->tahun_akhir);
-        if(sizeof($rentang_periode_id) != 0){
-            $array_periode_id = [];
-            foreach($rentang_periode_id as $periode){
-                array_push($array_periode_id, $periode->id);
-            }
-
-            $statistic_kinerja = $this->bidang_model->get_statistic_pencapaian_bidang_by_institusi_and_periode($selected_bidang, $selected_institusi, $array_periode_id);
-            $data["data_kinerja_statistik"] = $statistic_kinerja;
-        }
-    }
-    $this->load->view('form_bidang/dashboard_bidang_institusi.php', $data);
+    $view_name = 'bidang/page_institusi/index.php';
+    $this->display($view_name);
 }
 
 public function pencapaian_unit(){
-    $data["mode_individu"] = $this->input->post("mode_individu") == NULL ? false : true;
-    $selected_unit = $this->input->post("unit_id");
-    $is_ketua = $this->input->post("ketua_unit");
-    $selected_bidang = $this->input->post("bidang_id");
-    $selected_periode_tahun_semetser = $this->input->post("periode_id");
-    $selected_renstra_periode = $this->input->post("renstra_periode");
-    $show_bread_crumb_institusi = $this->input->post("show_bread_crumb_institusi");
+    //view sebagai data unit
+    $mode_individu = "0";
+    $this->set_mode_individu($mode_individu);
+    $this->data_institusi = $this->institusi_model->get();
+    $this->data_bidang = $this->bidang_model->get();
+    $this->data_renstra = $this->renstra_periode_model->get_all();
+    $this->data_periode = $this->periode_model->get();
 
+    $institusi_id = $this->input->post("institusi_id");
+    $this->set_institusi($institusi_id);
+    $this->set_data_unit($mode_individu);
 
-    $data['title'] = "Pencapaian Bidang Unit";
-    $data['versi'] = 'unit';
-    $data['show_bread_crumb_institusi'] = "0";
-    if($show_bread_crumb_institusi == "1"){
-        $data['show_bread_crumb_institusi'] = "1";
-        $selected_institusi = $this->input->post("institusi_id");
-        $selected_periode_tahun_semetser_institusi= $this->input->post("periode_id_institusi");
-        $selected_renstra_periode_institusi = $this->input->post("renstra_periode_institusi");
-        $objSelectedInstitusi = $this->institusi_model->get_by_id($selected_institusi);
-        $data['selected_institusi'] = $selected_institusi;
-        $data['selected_periode_tahun_semester_institusi'] = $selected_periode_tahun_semetser_institusi;
-        $data['selected_renstra_periode_institusi'] = $selected_renstra_periode_institusi;
-        $data["breadcrumb"] = [
-            [
-                "url" => site_url()."/bidang/pencapaian_institusi",
-                "name" => $objSelectedInstitusi->nama_institusi
-            ]
-        ];
-    }
+    $unit_id = $this->input->post("unit_id");
+    $this->set_unit($unit_id);
 
-    $data['selected_unit'] = $selected_unit;
-    $data["nama_unit"] = "";
-    $data['ketua_unit'] = $is_ketua;
-    $data['selected_bidang'] = $selected_bidang;
-    $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-    $data['selected_renstra_periode'] = $selected_renstra_periode;
-    $data['data_unit'] = [];
-    if(isset( $data['selected_institusi'])){
-        $data['data_unit'] = $this->unit_model->get_unit_by_institusi_id($data['selected_institusi']);
-    }
-     
-    if($this->session->userdata("hak_akses") != 1 || $data['mode_individu'] == true){
-        $data['data_unit'] = [];
-        $data["data_unit"] = [
-            (object) [
-                "nama_unit" => $this->session->userdata("nama_unit"),
-                "unit_id" => $this->session->userdata("unit_id"),
-                "tenaga_pengajar" => $this->session->userdata("tenaga_pengajar"),
-                "ketua" => "0",
-                "view" => "user"
-            ]  
-        ];
+    $formulir_ketua = $this->input->post("formulir_ketua");
+    $this->set_formulir_ketua($formulir_ketua);
 
-        if($this->session->userdata("ketua_unit") != null){
-            array_push($data["data_unit"], (object)[
-                "nama_unit" => "Ketua ".$this->session->userdata("nama_unit_diketuai"),
-                "unit_id" => $this->session->userdata("ketua_unit"),
-                "tenaga_pengajar" => $this->session->userdata("jenus_unit_diketuai"),
-                "ketua" => "1",
-                "view" => "unit"
-            ]);
+    $renstra_id = $this->input->post("renstra_periode");
+    $this->set_renstra_periode($renstra_id);
 
-            if($this->session->userdata("ketua_unit") != $this->session->userdata("unit_id")){
-                array_push($data["data_unit"], (object)[
-                    "nama_unit" => $this->session->userdata("jenus_unit_diketuai") == "0" ? "Anggota ".$this->session->userdata("nama_unit_diketuai") : "Dosen ".$this->session->userdata("nama_unit_diketuai"),
-                    "unit_id" => $this->session->userdata("ketua_unit"),
-                    "tenaga_pengajar" => $this->session->userdata("jenus_unit_diketuai"),
-                    "ketua" => "0",
-                    "view" => "unit"
-                ]);
-            }
-        }
+    $string_tahun_semester = $this->input->post("periode_id");
+    $this->set_periode($string_tahun_semester);
 
-    }
+    $bidang_id = $this->input->post("bidang_id");
+    $this->set_bidang($bidang_id);
 
-    $data['data_bidang'] =  $this->bidang_model->get();
-    $data['data_renstra_periode'] = $this->renstra_periode_model->get_all();
-    $data['data_periode'] = $this->periode_model->get ();
-    $data['selected_obj_renstra_periode'] = $data['data_renstra_periode'][0];
-    $data['action_lihat_bidang_institusi'] = site_url()."/bidang/pencapaian_institusi";
-    $data['action_lihat_bidang_unit'] = site_url()."/bidang/pencapaian_unit";
-    $data['action_lihat_bidang_user'] = site_url()."/bidang/pencapaian_user";
+    $crumb_institusi = $this->input->post("crumb_institusi");
+    $this->set_crumb_institusi($crumb_institusi);
+    
+    if($this->obj_periode != null) {
+        $array_formulir_anggota = $this->bidang_model->get_formulir_user_anggota_unit($this->bidang_id,$this->unit_id,$this->formulir_ketua, $this->periode_id);
+        if(sizeof($array_formulir_anggota) != 0){
+            $this->set_data_kinerja_anggota($array_formulir_anggota);
+            $this->set_data_detil_kinerja($array_formulir_anggota);
+            $kinerja_unit = hitung_pencapaian_unit( $array_formulir_anggota);
+            if($kinerja_unit != null) $this->set_data_kinerja($kinerja_unit);
 
-    $selected_periode_id =  $data['data_periode'][0]->id;
-
-    if($selected_periode_tahun_semetser == null && $selected_renstra_periode == null){
-       
-        $selected_renstra_periode = $data['data_renstra_periode'][0]->id;
-        $data['selected_renstra_periode'] = $selected_renstra_periode;
-        $array_periode_id = $this->periode_model->get_by_start_year_and_end_year($data['selected_obj_renstra_periode']->tahun_awal, $data['selected_obj_renstra_periode']->tahun_akhir);
-        if(sizeof($array_periode_id) != 0){
-            $selected_periode_tahun_semetser = $array_periode_id[0]->tahun."-".$array_periode_id[0]->semester;
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-            $selected_periode_id = $array_periode_id[0]->id;
-        }else{
-            //default value periode belum ada
-            $selected_periode_tahun_semetser = $data['selected_obj_renstra_periode']->tahun_awal."-"."1";
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-        }
-               
-    }elseif($selected_renstra_periode != null && $selected_periode_tahun_semetser != null){
-        $year = explode("-", $selected_periode_tahun_semetser)[0];
-        $semester = explode("-", $selected_periode_tahun_semetser)[1];
-
-        $cur_periode = $this->periode_model->get_by_year_and_semester($year, $semester);
-        $selected_periode_id = $cur_periode[0]->id;
-        $data['selected_obj_renstra_periode'] = $this->renstra_periode_model->get_by_id($selected_renstra_periode);
-
-    }elseif($selected_renstra_periode != null && $selected_periode_tahun_semetser == null){
-        $data['selected_obj_renstra_periode'] = $this->renstra_periode_model->get_by_id($selected_renstra_periode);
-        $array_periode_id = $this->periode_model->get_by_start_year_and_end_year($data['selected_obj_renstra_periode']->tahun_awal, $data['selected_obj_renstra_periode']->tahun_akhir);
-        if(sizeof($array_periode_id) != 0){
-            $selected_periode_tahun_semetser = $array_periode_id[0]->tahun."-".$array_periode_id[0]->semester;
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-            $selected_periode_id = $array_periode_id[0]->id;
-        }else{
-            //default value periode belum ada
-            $selected_periode_tahun_semetser = $data['selected_obj_renstra_periode']->tahun_awal."-"."1";
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-        }
-    }
-
-    if($selected_bidang == null){
-        $selected_bidang = $data['data_bidang'][0]->id;
-        $data['selected_bidang'] = $selected_bidang;
-    }
-
-    if($selected_unit == null){
-        $selected_unit = $data['data_unit'][0]->id;
-        $data['selected_unit'] = $selected_unit;
-        $data['ketua_unit'] = $is_ketua;
-        //jika 0 maka unit ketua
-        $is_ketua =  $data['data_unit'][0]->jumlah_anggota == 0 ? "1" : "0";
-        if($data['data_unit'][0]->jumlah_anggota == 0) {
-            $data["nama_unit"] = $data['data_unit'][0]->nama_unit;
-        }else {
-            if($is_ketua == "1") {
-                $data["nama_unit"] = "Ketua ".$data['data_unit'][0]->nama_unit;
-            }else{
-                $data["nama_unit"] = ($data['data_unit'][0]->tenaga_pengajar == "1") ? "Dosen ".$data['data_unit'][0]->nama_unit : "Anggota ".$data['data_unit'][0]->nama_unit;
-            }
-        }
-    }else{
-        $objUnit = $this->unit_model->get_unit_by_id($selected_unit);
-        if(isset($objUnit)){
-            if($objUnit->jumlah_anggota == 0) {
-                $data["nama_unit"] = $objUnit->nama_unit;
-            }else {
-                if($is_ketua == "1") {
-                    $data["nama_unit"] = "Ketua ".$objUnit->nama_unit;
-                }else{
-                    $data["nama_unit"] = ($objUnit->tenaga_pengajar == "1") ? "Dosen ".$objUnit->nama_unit : "Anggota ".$objUnit->nama_unit;
-                }
-            }
-        }
-    }
-
-    $data["data_kinerja_saat_ini"] = (object) [
-        "tercapai" => 0,
-        "tidak_tercapai" => 100,
-        "actual_score" => 0,
-        "max_score" => 0,
-        "minus_score" => 0
-    ];
-    $data["data_kinerja_anggota"] = [];
-    $data["data_detil_kinerja_saat_ini"] = [];
-    $data["data_kinerja_statistik"] = [];
-   
-    $array_formulir_id = [];
-    $array_formulir_anggota = $this->bidang_model->get_pencapaian_bidang_by_unit_and_periode($selected_bidang,$selected_unit,$is_ketua, $selected_periode_id);
-
-    if(sizeof($array_formulir_anggota) != 0){
-       $maximum_score = sizeof($array_formulir_anggota) * 100;
-       $actual_score = 0;
-       foreach($array_formulir_anggota as $formulir) {
-           $actual_score += $formulir->nilai_pencapaian;
-           array_push($array_formulir_id, $formulir->id);
-       }
-
-       $data["data_kinerja_saat_ini"]->tercapai = ($actual_score / $maximum_score) * 100;
-       $data["data_kinerja_saat_ini"]->tidak_tercapai =  $data["data_kinerja_saat_ini"]->tidak_tercapai - $data["data_kinerja_saat_ini"]->tercapai;
-       $data["data_kinerja_saat_ini"]->actual_score = $actual_score;
-       $data["data_kinerja_saat_ini"]->max_score = $maximum_score;
-       $data["data_kinerja_saat_ini"]->minus_score = $maximum_score - $actual_score;
-
-       $array_detil_formulir = $this->bidang_model->get_detil_pencapaian_bidang_by_unit_and_formulir($selected_bidang, $array_formulir_id);
-       //usort($array_formulir, "sort_descending_by_score");
-       $data["data_kinerja_anggota"] = $array_formulir_anggota;
-       $data["data_detil_kinerja_saat_ini"] = $array_detil_formulir;
-    }
-
-     //rentang waktu 5 tahun        
-     if($selected_renstra_periode != null){
-        $rentang_periode_id = $this->periode_model->get_by_start_year_and_end_year($data['selected_obj_renstra_periode']->tahun_awal, $data['selected_obj_renstra_periode']->tahun_akhir);
-        if(sizeof($rentang_periode_id) != 0){
-            $array_periode_id = [];
-            foreach($rentang_periode_id as $periode){
-                array_push($array_periode_id, $periode->id);
+            $formulir_id = [];
+            foreach($array_formulir_anggota as $formulir){
+                array_push($formulir_id, $formulir->id);
             }
 
-            $statistic_kinerja = $this->bidang_model->get_statistic_pencapaian_bidang_by_unit_and_periode($selected_bidang, $selected_unit,$is_ketua, $array_periode_id);
-            $data["data_kinerja_statistik"] = $statistic_kinerja;
+            $kpi_formulir = $this->bidang_model->get_detil_pencapaian_bidang_by_unit_and_formulir($this->bidang_id, $formulir_id);
+            $this->set_data_detil_kinerja($kpi_formulir);
         }
     }
-    $this->load->view('form_bidang/dashboard_bidang_unit.php', $data);
+
+    if($this->obj_renstra != null) {
+        $id_periode_5_tahun = $this->get_periode_id_by_year($this->obj_renstra->tahun_awal, $this->obj_renstra->tahun_akhir); 
+        $statistik_kinerja = $this->bidang_model->get_statistic_pencapaian_bidang_by_unit_and_periode($this->bidang_id, $this->unit_id, $this->formulir_ketua, $id_periode_5_tahun);
+        if(sizeof($statistik_kinerja) != 0 ) $this->set_data_statistik_kinerja($statistik_kinerja);
+    }
+    $view_name = 'bidang/page_unit/index.php';
+    $this->display($view_name);
 }
 
 public function pencapaian_user(){
-    $data["mode_individu"] = $this->input->post("mode_individu") == NULL ? false : true;
-    $selected_user = $this->input->post("user_id");
-    $selected_unit = $this->input->post("unit_id");
-    $is_ketua = $this->input->post("ketua_unit");
-    $selected_bidang = $this->input->post("bidang_id");
-    $selected_periode_tahun_semetser = $this->input->post("periode_id");
-    $selected_renstra_periode = $this->input->post("renstra_periode");
-    $show_bread_crumb_institusi = $this->input->post("show_bread_crumb_institusi");
-    $show_bread_crumb_unit = $this->input->post("show_bread_crumb_unit");
+    $mode_individu = $this->input->post("mode_individu");
+    $this->set_mode_individu($mode_individu);
 
-    $data['title'] = "Pencapaian Bidang Unit";
-    $data['versi'] = 'individu';
-    $data['show_bread_crumb_institusi'] = "0";
-    $data['show_bread_crumb_unit'] = "0";
-    $data["breadcrumb"] = [];
-    //bread crumb institusi
-    if($show_bread_crumb_institusi == "1"){
-        $data['show_bread_crumb_institusi'] = "1";
-        $selected_institusi = $this->input->post("institusi_id");
-        $selected_periode_tahun_semetser_institusi= $this->input->post("periode_id_institusi");
-        $selected_renstra_periode_institusi = $this->input->post("renstra_periode_institusi");
-        $objSelectedInstitusi = $this->institusi_model->get_by_id($selected_institusi);
-        $data['selected_institusi'] = $selected_institusi;
-        $data['data_unit'] = $this->unit_model->get_unit_by_institusi_id($selected_institusi);
-        $data['selected_periode_tahun_semester_institusi'] = $selected_periode_tahun_semetser_institusi;
-        $data['selected_renstra_periode_institusi'] = $selected_renstra_periode_institusi;
-        $data["breadcrumb"]['institusi'] = [
-                "url" => site_url()."/bidang/pencapaian_institusi",
-                "name" => $objSelectedInstitusi->nama_institusi
-        ];
-    }
+    $this->data_institusi = $this->institusi_model->get();
+    $this->data_bidang = $this->bidang_model->get();
+    $this->data_renstra = $this->renstra_periode_model->get_all();
+    $this->data_periode = $this->periode_model->get();
 
-    //bread crumb unit
-    if($show_bread_crumb_unit == "1"){
-        $data['show_bread_crumb_unit'] = "1";
-        $selected_ketua_unit = $this->input->post("ketua_unit");
-        $selected_unit = $this->input->post("unit_id");
-        $selected_periode_tahun_semetser_unit = $this->input->post("periode_id_unit");
-        $selected_renstra_periode_unit = $this->input->post("renstra_periode_unit");
+    $institusi_id = $this->input->post("institusi_id");
+    $this->set_institusi($institusi_id);
+    $this->set_data_unit($mode_individu);
 
-        $objSelectedUnit = $this->unit_model->get_unit_by_id($selected_unit);
-        $data['selected_unit'] = $selected_unit;
-        $objUnit = $this->unit_model->get_unit_by_id($selected_unit);
-        $data["selected_institusi"] = $objUnit->institusi_id;
-        $data['selected_ketua_unit'] = $selected_ketua_unit;
-        $data['selected_periode_tahun_semester_unit'] = $selected_periode_tahun_semetser_unit;
-        $data['selected_renstra_periode_unit'] = $selected_renstra_periode_unit;
-        $namaUnit = $objSelectedUnit->nama_unit;
-        if($objSelectedUnit->tenaga_pengajar == "1"){
-            if($selected_ketua_unit == "0"){
-                $namaUnit = "Dosen ".$namaUnit;
-            }else{
-                $namaUnit = "Ketua ".$namaUnit;
-            }
-        }else{
-            if($selected_ketua_unit == "0"){
-                $namaUnit = "Anggota ".$namaUnit;
-            }else{
-                $namaUnit = "Ketua ".$namaUnit;
-            }
-        }
-        $data["breadcrumb"]['unit'] = [
-                "url" => site_url()."/bidang/pencapaian_unit",
-                "name" => $namaUnit
-        ];
-    }
+    $unit_id = $this->input->post("unit_id");
+    $this->set_unit($unit_id);
 
-    $data['data_bidang'] =  $this->bidang_model->get();
-    $data['data_renstra_periode'] = $this->renstra_periode_model->get_all();
-    $data['data_periode'] = $this->periode_model->get ();
-   
+    $formulir_ketua = $this->input->post("formulir_ketua");
+    $this->set_formulir_ketua($formulir_ketua);
 
-    $data['selected_obj_renstra_periode'] = $data['data_renstra_periode'][0];
-    $data['action_lihat_bidang_institusi'] = site_url()."/bidang/pencapaian_institusi";
-    $data['action_lihat_bidang_unit'] = site_url()."/bidang/pencapaian_unit";
-    $data['action_lihat_bidang_user'] = site_url()."/bidang/pencapaian_user";
+    $user_id = $this->input->post("user_id");
+    $this->set_user_id($user_id);
 
+    $renstra_id = $this->input->post("renstra_periode");
+    $this->set_renstra_periode($renstra_id);
 
-    $data['selected_user'] = $selected_user;
-    $data['nama_user'] = "";
-    $data['ketua_unit'] = $is_ketua;
-    $data['selected_bidang'] = $selected_bidang;
-    $data['selected_unit'] = $selected_unit;
-    $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-    $data['selected_renstra_periode'] = $selected_renstra_periode;
+    $string_tahun_semester = $this->input->post("periode_id");
+    $this->set_periode($string_tahun_semester);
 
-    $selected_periode_id =  $data['data_periode'][0]->id;
+    $bidang_id = $this->input->post("bidang_id");
+    $this->set_bidang($bidang_id);
 
-    if($selected_periode_tahun_semetser == null && $selected_renstra_periode == null){
-       
-        $selected_renstra_periode = $data['data_renstra_periode'][0]->id;
-        $data['selected_renstra_periode'] = $selected_renstra_periode;
-        $array_periode_id = $this->periode_model->get_by_start_year_and_end_year($data['selected_obj_renstra_periode']->tahun_awal, $data['selected_obj_renstra_periode']->tahun_akhir);
-        if(sizeof($array_periode_id) != 0){
-            $selected_periode_tahun_semetser = $array_periode_id[0]->tahun."-".$array_periode_id[0]->semester;
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-            $selected_periode_id = $array_periode_id[0]->id;
-        }else{
-            //default value periode belum ada
-            $selected_periode_tahun_semetser = $data['selected_obj_renstra_periode']->tahun_awal."-"."1";
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-        }
-               
-    }elseif($selected_renstra_periode != null && $selected_periode_tahun_semetser != null){
-        $year = explode("-", $selected_periode_tahun_semetser)[0];
-        $semester = explode("-", $selected_periode_tahun_semetser)[1];
-        $cur_periode = $this->periode_model->get_by_year_and_semester($year, $semester);
-        if($cur_periode != null){
-            $selected_periode_id = $cur_periode[0]->id;
-            $data['selected_obj_renstra_periode'] = $this->renstra_periode_model->get_by_id($selected_renstra_periode);
-        }
+    $crumb_institusi = $this->input->post("crumb_institusi");
+    $this->set_crumb_institusi($crumb_institusi);
 
-    }elseif($selected_renstra_periode != null && $selected_periode_tahun_semetser == null){
-        $data['selected_obj_renstra_periode'] = $this->renstra_periode_model->get_by_id($selected_renstra_periode);
-        $array_periode_id = $this->periode_model->get_by_start_year_and_end_year($data['selected_obj_renstra_periode']->tahun_awal, $data['selected_obj_renstra_periode']->tahun_akhir);
-        if(sizeof($array_periode_id) != 0){
-            $selected_periode_tahun_semetser = $array_periode_id[0]->tahun."-".$array_periode_id[0]->semester;
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-            $selected_periode_id = $array_periode_id[0]->id;
-        }else{
-            //default value periode belum ada
-            $selected_periode_tahun_semetser = $data['selected_obj_renstra_periode']->tahun_awal."-"."1";
-            $data['selected_periode_tahun_semetser'] = $selected_periode_tahun_semetser;
-        }
-    }
-    
-    if($selected_user == null){
-        $selected_user = $this->session->userdata("id");
-        $data['selected_user'] = $selected_user;
-        $data['nama_user'] = $this->session->userdata("nama_user");
-    }else{
-        $objSelectedUser =  $this->user_model->get_user_by_id($selected_user);
-        $data['nama_user'] = $objSelectedUser->nama_user;
-    }
+    $crumb_unit = $this->input->post("crumb_unit");
+    $this->set_crumb_unit($crumb_unit);
 
-    if($selected_unit == null){
-        $selected_unit = $this->session->userdata("unit_id");
-        $data['selected_unit'] = $selected_unit;
-        $objSelectedUnit = $this->unit_model->get_unit_by_id($selected_unit);
-        $is_ketua = ($objSelectedUnit->jumlah_anggota == 0) ? "1" : "0"; 
-        $data["ketua_unit"] = $is_ketua;
-    }
+    if($this->obj_periode != null) {
+        $kpi_formulir_user = $this->bidang_model->get_detil_pencapaian_bidang_by_user_formulir($this->bidang_id, $this->user_id, $this->unit_id, $this->formulir_ketua, $this->periode_id);
 
-    if($selected_bidang == null){
-        $selected_bidang = $data['data_bidang'][0]->id;
-        $data['selected_bidang'] = $selected_bidang;
-    }
-
-    $selected_obj_unit = $this->unit_model->get_unit_by_id($selected_unit);
-    $namaUnit = $selected_obj_unit->nama_unit;
-    if($selected_obj_unit->tenaga_pengajar == "1"){
-        if($is_ketua == "0"){
-            $namaUnit = "Dosen ".$namaUnit;
-        }else{
-            $namaUnit = "Ketua ".$namaUnit;
-        }
-    }else{
-        if($is_ketua == "0"){
-            $namaUnit = "Anggota ".$namaUnit;
-        }else{
-            $namaUnit = "Ketua ".$namaUnit;
-        }
-    }
-    $selected_obj_unit->nama_unit = $namaUnit;
-    $data['selected_obj_unit'] = $selected_obj_unit;
-
-    if($this->session->userdata("hak_akses") != 1 || $data['mode_individu'] == true){
-        $data['data_unit'] = [];
-        $data["data_unit"] = [
-            (object) [
-                "nama_unit" => $this->session->userdata("nama_unit"),
-                "unit_id" => $this->session->userdata("unit_id"),
-                "tenaga_pengajar" => $this->session->userdata("tenaga_pengajar"),
-                "ketua" => "0",
-                "view" => "user"
-            ]  
-        ];
-
-        if($this->session->userdata("ketua_unit") != null){
-            array_push($data["data_unit"], (object)[
-                "nama_unit" => "Ketua ".$this->session->userdata("nama_unit_diketuai"),
-                "unit_id" => $this->session->userdata("ketua_unit"),
-                "tenaga_pengajar" => $this->session->userdata("jenus_unit_diketuai"),
-                "ketua" => "1",
-                "view" => "unit"
-            ]);
-
-            if($this->session->userdata("ketua_unit") != $this->session->userdata("unit_id")){
-                array_push($data["data_unit"], (object)[
-                    "nama_unit" => $this->session->userdata("jenus_unit_diketuai") == "0" ? "Anggota ".$this->session->userdata("nama_unit_diketuai") : "Dosen ".$this->session->userdata("nama_unit_diketuai"),
-                    "unit_id" => $this->session->userdata("ketua_unit"),
-                    "tenaga_pengajar" => $this->session->userdata("jenus_unit_diketuai"),
-                    "ketua" => "0",
-                    "view" => "unit"
-                ]);
-            }
-        }
-
-    }
-    
-
-    $data["data_kinerja_saat_ini"] = (object) [
-        "tercapai" => 0,
-        "tidak_tercapai" => 100,
-        "actual_score" => 0,
-        "max_score" => 0,
-        "minus_score" => 0
-    ];
-    $data["data_kinerja_anggota"] = [];
-    $data["data_detil_kinerja_saat_ini"] = [];
-    $data["data_kinerja_statistik"] = [];
-
-    if($selected_periode_id != null){
-        $row_kinrja_user = $this->bidang_model->get_pencapaian_bidang_by_user_and_periode($selected_bidang,$selected_user, $selected_unit, $is_ketua, $selected_periode_id);
-        if($row_kinrja_user != null){
-            $data['data_kinerja_saat_ini']->tercapai = $row_kinrja_user->nilai_pencapaian;
-            $data['data_kinerja_saat_ini']->tidak_tercapai =  $data['data_kinerja_saat_ini']->tidak_tercapai -  $data['data_kinerja_saat_ini']->tercapai;
-            $data['data_kinerja_saat_ini']->max_score = 100;
-            $data['data_kinerja_saat_ini']->actual_score =  $data['data_kinerja_saat_ini']->tercapai;
-            $data['data_kinerja_saat_ini']->minus_score = 100 -  $data['data_kinerja_saat_ini']->tercapai;
-            $data['data_detil_kinerja_saat_ini'] = $this->bidang_model->get_detil_pencapaian_bidang_by_user_formulir($selected_bidang, $row_kinrja_user->id);
-            
+        if($kpi_formulir_user != null && sizeof($kpi_formulir_user) != 0){
+            $kinerja_user = hitung_pencapaian_user($kpi_formulir_user);
+            $this->set_data_kinerja($kinerja_user);
+            $this->set_data_detil_kinerja($kpi_formulir_user);
         }
     }
 
-
-    if($selected_renstra_periode != null){
-        $rentang_periode_id = $this->periode_model->get_by_start_year_and_end_year($data['selected_obj_renstra_periode']->tahun_awal, $data['selected_obj_renstra_periode']->tahun_akhir);
-        if(sizeof($rentang_periode_id) != 0){
-            $array_periode_id = [];
-            foreach($rentang_periode_id as $periode){
-                array_push($array_periode_id, $periode->id);
-            }
-
-            $statistic_kinerja = $this->bidang_model->get_statistic_pencapaian_bidang_by_user_and_periode($selected_bidang, $selected_user,$selected_unit,$is_ketua, $array_periode_id);
-            $data["data_kinerja_statistik"] = $statistic_kinerja;
-        }
+    if($this->obj_renstra != null) {
+        $id_periode_5_tahun = $this->get_periode_id_by_year($this->obj_renstra->tahun_awal, $this->obj_renstra->tahun_akhir); 
+        $statistik_kinerja = $this->bidang_model->get_statistic_pencapaian_bidang_by_user_and_periode($this->bidang_id, $this->user_id, $this->unit_id, $this->formulir_ketua, $id_periode_5_tahun);
+        if(sizeof($statistik_kinerja) != 0 ) $this->set_data_statistik_kinerja($statistik_kinerja);
     }
-
-    $this->load->view('form_bidang/dashboard_bidang_user.php', $data);
-
+    $nama_view = "bidang/dashboard_bidang_user.php";
+    $this->display($nama_view);
 }
+
 
 }
 

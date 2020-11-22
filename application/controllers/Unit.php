@@ -45,8 +45,9 @@ public function index($institusi_id = null, $success = null){
    $this->load->view("unit/list_unit.php", $data);
 }
 
-public function detil($unit_id){
+public function detil($unit_id, $success = false){
     $data["title"] = "Detil Unit";
+    $data["success"] = $success;
     $data["unit_selected"] = $this->unit_model->get_unit_by_id($unit_id);
     $data["data_anggota"] = $this->user_model->get_user_by_unit_id($unit_id);
     $data["data_user"] = $this->user_model->get_all();
@@ -67,7 +68,7 @@ public function detil($unit_id){
 public function action_update_ketua_unit($unit_id){
     $ketua_unit = $this->input->post("ketua_unit");
     $affected_rows = $this->ketua_unit_model->update_ketua_unit($unit_id, $ketua_unit);
-    redirect(site_url()."/unit/detil/".$unit_id);
+    redirect(site_url()."/unit/detil/".$unit_id."/1");
 }
 
 public function action_update_unit($unit_id){
@@ -78,6 +79,7 @@ public function action_update_unit($unit_id){
     $error = null;
 
     $data["title"] = "Unit";
+    $data["action_form_unit"] = site_url()."/unit/form_unit";
     $data["action_cari"] = site_url()."/unit";
     $data["action_detil"] = site_url()."/unit/detil/";
     $data["action_update_unit"] = site_url()."/unit/action_update_unit/";
@@ -182,7 +184,7 @@ public function add_unit(){
        $data["error"]["key"] = "Nama Unit"; 
        $data["error"]["message"] = "Nama Unit Tidak Boleh Kosong";
        $data["error"]["status"] = true;
-    }else if(empty($institusi_id)){
+    }else if(empty($institusi_id) || $institusi_id == null){
        $data["error"]["key"] = "Institusi"; 
        $data["error"]["message"] = "Institusi Harus Dipilih";
        $data["error"]["status"] = true;
@@ -195,10 +197,17 @@ public function add_unit(){
         $data["error"]["message"] = "Tenaga Penagajar Harus Dipilih";
         $data["error"]["status"] = true;
     }else{
-        $data['nama_unit'] = $nama_unit;
-        $data['ketua_unit'] = $ketua_unit;
-        $data['institusi_id'] = $institusi_id;
-        $data['tenaga_pengajar'] = $tenaga_pengajar;
+        $is_unit_registered = $this->unit_model->get_unit_by_name($nama_unit, $institusi_id);
+        if($is_unit_registered){
+            $data["error"]["key"] = "Unit Duplikat"; 
+            $data["error"]["message"] = "Unit Telah Terdaftar Sebelumnya!";
+            $data["error"]["status"] = true;
+        }else{
+            $data['nama_unit'] = $nama_unit;
+            $data['ketua_unit'] = $ketua_unit;
+            $data['institusi_id'] = $institusi_id;
+            $data['tenaga_pengajar'] = $tenaga_pengajar;
+        }
     }
 
     if($data["error"]["status"] == false){
@@ -208,7 +217,7 @@ public function add_unit(){
             "tenaga_pengajar" => $tenaga_pengajar,
             "ketua_unit" => $ketua_unit
         ];
-        $new_unit_id = $this->unit_model->add_unit($data_new_unit);
+        $new_unit_id = $this->unit_model->add_unit($data_new_unit, $institusi_id);
         $data["success"]["key"] = "Unit"; 
         $data["success"]["message"] = "Data Telah Ditambahkan!";
         $data["success"]["status"] = true;

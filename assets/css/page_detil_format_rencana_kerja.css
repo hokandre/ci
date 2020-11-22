@@ -17,3 +17,32 @@
     width: 100%;
     padding : 10px;
 }
+
+#page-detil-format-rencana-kerja table td[name="col-sumber"] {
+    width: 100px;
+}
+#page-detil-format-rencana-kerja table td[name="col-bidang"] {
+    width: 100px;
+}
+#page-detil-format-rencana-kerja table td[name="col-bobot"] {
+    width: 73px;
+}
+#page-detil-format-rencana-kerja table td[name="col-indikator"] {
+    width: 200px;
+}   
+#page-detil-format-rencana-kerja table td[name="col-unit"] {
+    width: 200px;
+}
+#page-detil-format-rencana-kerja table td[name="col-button"] {
+    width: 100px;
+}
+
+#page-detil-format-rencana-kerja table td[name="col-kpi"] input[name="kpi"]{
+    display: block;
+    width: 100%;
+}   
+
+#page-detil-format-rencana-kerja table td[name="col-indikator"] select {
+   width: 100%;
+   max-width: 300px;
+}

@@ -1,56 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="">
-  <meta name="author" content="">
+<!-- HEADER -->
+<?php $this->load->view('partials/header.php', [
+  "title" => "Dashboard Indikator Institusi"
+]);?> 
 
-  <title><?=$title;?></title>
-  <!--Global CSS-->
-  <link href=<?php echo base_url()."assets/css/global.css";?> rel="stylesheet"/>
-</head>
-<body>
-    <?php $this->load->view('template/header.php');?>
+<main>
+    <!-- SIDEBAR -->
+    <?php $this->load->view('template/sidebar/sidebar_bpm.php');?>
 
-    <main>
-        <?php $this->load->view('template/sidebar/sidebar_bpm.php');?>
-        <section class="page-content" id="page-dashboard-bidang">
-            <div class="content-title">
-                <div class="page-title">
-                    <h3> <i class="fas fa-tachometer-alt"></i> Pencapain Bidang 
-                    <!-- switch dashbard unit - institusi -->
-                    <?php if($this->session->userdata("hak_akses") == 1) :?>
-                    <form id="ubah-bidang" action="<?=$action_lihat_bidang_institusi;?>" style="display: inline-block;" method="post">
-                        <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
-                        <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
-                        <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
-                        <select name="bidang_id" id="bidang_id" class="toolbar toolbar-white">
-                            <?php $indexBidang = 0; foreach($data_bidang as $bidang) : $indexBidang++;?>
-                                <option <?=$selected_bidang == $bidang->id ? "selected" : "";?> value="<?=$bidang->id;?>">
-                                    <?=$bidang->nama_bidang;?>
-                                </option>
-                            <?php endforeach;?>
-                        </select>
-                    </form>
-                    
-                    <form id="ubah-institusi" action="<?=$action_lihat_bidang_institusi;?>" style="display: inline-block;" method="post">
-                        <select name="institusi_id" id="institusi_id" class="toolbar toolbar-white">
-                            <?php $indexInstitusi = 0; foreach($data_institusi as $institusi) : $indexInstitusi++;?>
-                                <option <?=$selected_institusi == $institusi->id ? "selected" : "";?> value="<?=$institusi->id;?>">
-                                    <?=$institusi->nama_institusi;?>
-                                </option>
-                            <?php endforeach;?>
-                        </select>
-                    </form>
-                    <?php endif;?> 
-                </h3> 
-                </div>
-                <div class="margin-left">
-                    <a href="<?=$action_lihat_bidang_user;?>" class="toolbar toolbar-white"> pribadi</a>
-                </div>
-            </div>
+    <section class="page-content" id="page-dashboard-bidang">
+        <!-- CONTENT TITLE -->    
+        <?php $this->load->view("indikator/template/content_title_dashboard_indikator_institusi.php", [
+            "action_lihat_bidang_institusi" => $action_lihat_bidang_institusi,
+            "selected_institusi" => $selected_institusi,
+            "selected_periode_tahun_semetser" => $selected_periode_tahun_semetser,
+            "selected_renstra_periode" => $selected_renstra_periode,
+            "data_bidang" => $data_bidang,
+            "selected_bidang" => $selected_bidang,
+            "data_institusi" => $data_institusi,
+            "selected_institusi" => $selected_institusi,
+            "action_lihat_bidang_user" => $action_lihat_bidang_user
+        ]);?>
 
         <div class="flex-row">
             <!-- pie chart -->
@@ -183,18 +152,16 @@
             </div>
         </div>
 
-        </section>
-    </main>
-</body>
-<!-- Jquery -->
-<script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
-<!-- Font Awsome -->
-<script src="https://kit.fontawesome.com/60acd380e3.js" crossorigin="anonymous"></script>
-<!-- ChartJs -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.js" crossorigin="anonymous"></script>
+    </section>
+</main>
 
-<!-- Own js file for global setting -->
-<script src=<?php echo base_url()."assets/js/global.js";?>></script>
+<!-- FOOTER -->
+<?php $this->load->view("partials/footer.php", [
+    "js" => [
+        "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.js"
+    ]
+]) ;?>
+
 
 <script>
 $(document).ready(function(){
@@ -211,24 +178,6 @@ let dataStatistikKinerja = JSON.parse('<?php echo json_encode($data_kinerja_stat
 
 let keteranganPeriode = JSON.parse('<?php echo json_encode($keteranganperiode);?>');
 let renstraPeriode = JSON.parse('<?php echo  is_null($selected_obj_renstra_periode) ? "" : json_encode($selected_obj_renstra_periode); ?>');
-
-let colors = [ 
-     '#4661EE',
-     '#EC5657',
-     '#1BCDD1',
-     '#8FAABB',
-     '#B08BEB',
-     '#3EA0DD',
-     '#F5A52A',
-     '#23BFAA',
-     '#FAA586',
-     '#EB8CC6',
-     "#2F4F4F",
-    "#008080",
-    "#2E8B57",
-    "#3CB371",
-    "#90EE90"
-];
 
 //form : ubah - bidang 
 $(document).on('change', 'select[name="bidang_id"]', function(){
@@ -260,7 +209,6 @@ var myPieChartKinerjaSaatIni = new Chart(canvasKinerjaSaatIni, {
         }]
     }
 });
-
 
 let canvasDetilKinerjaSaatIni = $('#canvas-detil-kinerja-saat-ini');
 let myBarChartDetilKinerjaSaatIni = new Chart(canvasDetilKinerjaSaatIni, {
@@ -298,8 +246,6 @@ let myBarChartDetilKinerjaSaatIni = new Chart(canvasDetilKinerjaSaatIni, {
       }
     }
 });
-
-
 
 let canvasStatistikKinerja = $('#canvas-statistik-kinerja');
 let dataMyLineChartStatistikKinerja = {};
@@ -367,6 +313,4 @@ if(renstraPeriode){
         }
     });
 }
-
 </script>
-</html>

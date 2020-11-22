@@ -1,205 +1,170 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="">
-  <meta name="author" content="">
+<!-- HEADER -->
+<?php $this->load->view('partials/header.php', [
+  "title" => "Dashboard KPI Insitusi",
+]);?> 
 
-  <title><?=$title;?></title>
-  <!--Global CSS-->
-  <link href=<?php echo base_url()."assets/css/global.css";?> rel="stylesheet"/>
-</head>
-<body>
-    <?php $this->load->view('template/header.php');?>
+<main>
+    <!-- SIDEBAR -->
+    <?php $this->load->view('template/sidebar/sidebar_bpm.php');?>
 
-    <main>
-        <?php $this->load->view('template/sidebar/sidebar_bpm.php');?>
-        <section class="page-content" id="page-dashboard-bidang">
-            <div class="content-title">
-                <div class="page-title">
-                    <h3> <i class="fas fa-tachometer-alt"></i> Pencapain Sumber Kpi 
-                    <!-- switch dashbard unit - institusi -->
-                    <?php if($this->session->userdata("hak_akses") == 1) :?>
-                    <form id="ubah-sumber" action="<?=$action_lihat_kpi_institusi;?>" style="display: inline-block;" method="post">
-                        <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
-                        <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
-                        <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
-                        <select name="sumber_id" id="sumber_id" class="toolbar toolbar-white">
-                            <?php $indexsumber = 0; foreach($data_sumber as $sumber) : $indexsumber++;?>
-                                <option <?=$selected_sumber == $sumber->id ? "selected" : "";?> value="<?=$sumber->id;?>">
-                                    <?=$sumber->nama_sumber;?>
-                                </option>
-                            <?php endforeach;?>
-                        </select>
-                    </form>
-                    
-                    <form id="ubah-institusi" action="<?=$action_lihat_kpi_institusi;?>" style="display: inline-block;" method="post">
-                        <select name="institusi_id" id="institusi_id" class="toolbar toolbar-white">
-                            <?php $indexInstitusi = 0; foreach($data_institusi as $institusi) : $indexInstitusi++;?>
-                                <option <?=$selected_institusi == $institusi->id ? "selected" : "";?> value="<?=$institusi->id;?>">
-                                    <?=$institusi->nama_institusi;?>
-                                </option>
-                            <?php endforeach;?>
-                        </select>
-                    </form>
-                    <?php endif;?> 
-                </h3> 
-                </div>
-                <div class="margin-left">
-                    <form method="post" action="<?=$action_lihat_kpi_user;?>">
-                        <input type="hidden" name="mode_individu" value="true"/>
-                        <button class="toolbar" title="Lihat pencapaian kpi" ><i class="fas fa-plus-circle" aria-hidden="true"></i> Pribadi</button>
-                    </form>
-                </div>
-            </div>
+    <section class="page-content" id="page-dashboard-bidang">
 
-        <div class="flex-row">
-            <!-- pie chart -->
-            <div class="flex-col-6">
-                <div class="card">
-                    <div class="card-header">
-                    <?php 
-                        $tahun = explode("-", $selected_periode_tahun_semetser)[0];
-                        $semester = explode("-", $selected_periode_tahun_semetser)[1];
-                        $keteranganperiode = "";
-                        if($semester == "1") {
+        <!-- CONTENT TITLE -->    
+        <?php $this->load->view("kpi/template/content_title_dashboard_kpi_institusi.php", [
+            "action_lihat_kpi_institusi" => $action_lihat_kpi_institusi,
+            "selected_institusi" => $selected_institusi,
+            "selected_periode_tahun_semetser" => $selected_periode_tahun_semetser,
+            "selected_renstra_periode" => $selected_renstra_periode,
+            "data_sumber" => $data_sumber,
+            "selected_sumber" => $selected_sumber,
+            "data_institusi" => $data_institusi,
+            "selected_institusi" => $selected_institusi,
+            "action_lihat_kpi_user" => $action_lihat_kpi_user
+        ]);?>
+
+    <div class="flex-row">
+        <!-- pie chart -->
+        <div class="flex-col-6">
+            <div class="card">
+                <div class="card-header">
+                <?php 
+                    $tahun = explode("-", $selected_periode_tahun_semetser)[0];
+                    $semester = explode("-", $selected_periode_tahun_semetser)[1];
+                    $keteranganperiode = "";
+                    if($semester == "1") {
                         $keteranganperiode = "September ".($tahun)." - Februari ".($tahun+1);
-                        }else{
+                    }else{
                         $keteranganperiode = "Maret ".($tahun+1)." - Agustus ".($tahun+1);
-                        }
-                    ?>
-                    <h4><i class="fas fa-tachometer-alt"></i> 
-                        Pencapaian Bidang Periode (<?=$keteranganperiode;?>)
-                    </h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container" style="position: relative;">
-                            <h4 style="text-align:center; margin-bottom:10px;"><?=$nama_institusi;?></h4>
-                            <canvas id="canvas-kinerja-saat-ini"></canvas>
-                        </div>
-                    </div>
+                    }
+                ?>
+                <h4><i class="fas fa-tachometer-alt"></i> 
+                    Pencapaian Bidang Periode (<?=$keteranganperiode;?>)
+                </h4>
                 </div>
-            </div>
-            <!-- line chart -->
-            <div class="flex-col-6">
-                <div class="card">
-                    <div class="card-header card-header-dashboard">
-                    <h4><i class="fas fa-history"></i> History Kinerja </h4>
-                    </div>
-                    <div class="card-body">
-                        <form id="ubah-periode" action="<?=$action_lihat_kpi_institusi;?>" method="post">
-                        <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
-                        <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
-                        <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
-                        <input type="hidden" name="sumber_id" value="<?=$selected_sumber;?>"/>
-                        <div class="chart-container" style="position: relative;">
-                            <canvas id="canvas-statistik-kinerja"></canvas>
-                        </div>
-                        </form>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative;">
+                        <h4 style="text-align:center; margin-bottom:10px;"><?=$nama_institusi;?></h4>
+                        <canvas id="canvas-kinerja-saat-ini"></canvas>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="card" style="margin-top: 30px;">
-            <div class="card-header">
-                <h4> <i class="fas fa-users"></i> Pencapaian Unit Anggota</h4>
+        <!-- line chart -->
+        <div class="flex-col-6">
+            <div class="card">
+                <div class="card-header card-header-dashboard">
+                <h4><i class="fas fa-history"></i> History Kinerja </h4>
+                </div>
+                <div class="card-body">
+                    <form id="ubah-periode" action="<?=$action_lihat_kpi_institusi;?>" method="post">
+                    <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
+                    <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
+                    <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
+                    <input type="hidden" name="sumber_id" value="<?=$selected_sumber;?>"/>
+                    <div class="chart-container" style="position: relative;">
+                        <canvas id="canvas-statistik-kinerja"></canvas>
+                    </div>
+                    </form>
+                </div>
             </div>
-            <div class="card-body">
-                <!-- table topbar -->
-                <div class="table-topbar">
-                    <div class="table-topbar-filter">
-                        <h4>show : </h4>
-                        <select name="numberRow" id="numberRow">
-                            <option value="10">10</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                    </div> 
-                    <div class="table-topbar-filter">
-                        <h4>search :</h4> <input id="tableSearch" type="text" value="" placeholder="search..."/>
-                    </div>
-                    </div>
+        </div>
+    </div>
 
-                <table id="table-list-unit-anggota-institusi">
-                    <thead>
+    <div class="card" style="margin-top: 30px;">
+        <div class="card-header">
+            <h4> <i class="fas fa-users"></i> Pencapaian Unit Anggota</h4>
+        </div>
+        <div class="card-body">
+            <!-- table topbar -->
+            <div class="table-topbar">
+                <div class="table-topbar-filter">
+                    <h4>show : </h4>
+                    <select name="numberRow" id="numberRow">
+                        <option value="10">10</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div> 
+                <div class="table-topbar-filter">
+                    <h4>search :</h4> <input id="tableSearch" type="text" value="" placeholder="search..."/>
+                </div>
+                </div>
+
+            <table id="table-list-unit-anggota-institusi">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Unit</th>
+                        <th>Pencapaian</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <?php $indexAnggota=0; foreach($data_kinerja_anggota as $data_anggota ): $indexAnggota++;?>
                         <tr>
-                            <th>No</th>
-                            <th>Nama Unit</th>
-                            <th>Pencapaian</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <?php $indexAnggota=0; foreach($data_kinerja_anggota as $data_anggota ): $indexAnggota++;?>
-                            <tr>
-                                <td><?=$indexAnggota;?></td>
-                                
-                                <td>
-                                    <?php 
-                                            switch($data_anggota->tenaga_pengajar){
-                                                case "1" : {
-                                                echo $data_anggota->formulir_ketua == "0" ? "Dosen ".$data_anggota->nama_unit  : "Ketua ".$data_anggota->nama_unit; 
-                                                    break;
-                                                }
-                                                case "0" : {
-                                                    echo $data_anggota->formulir_ketua == "0" ? "Anggota ".$data_anggota->nama_unit :  "Ketua ".$data_anggota->nama_unit;
-                                                    break;
-                                                }
+                            <td><?=$indexAnggota;?></td>
+                            
+                            <td>
+                                <?php 
+                                        switch($data_anggota->tenaga_pengajar){
+                                            case "1" : {
+                                            echo $data_anggota->formulir_ketua == "0" ? "Dosen ".$data_anggota->nama_unit  : "Ketua ".$data_anggota->nama_unit; 
+                                                break;
                                             }
-                                    ?>
-                                </td>
-                                <td><?=($data_anggota->score / $data_anggota->MAX_SCORE) *100;?></td>
-                                <td>
-                                    <form id="lihat-unit" action="<?=$action_lihat_kpi_unit;?>" method="post">
-                                            <input type="hidden" name="unit_id" value="<?=$data_anggota->unit_id;?>"/>
-                                            <input type="hidden" name="ketua_unit" value="<?=$data_anggota->formulir_ketua;?>"/>
-                                            <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
-                                            <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
-                                            <input type="hidden" name="sumber_id" value="<?=$selected_sumber;?>"/>
-                                        <!-- for bread crumb -->
-                                            <input type="hidden" name="show_bread_crumb_institusi" value="1"/>
-                                            <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
-                                            <input type="hidden" name="periode_id_institusi" value="<?=$selected_periode_tahun_semetser;?>"/>
-                                            <input type="hidden" name="renstra_periode_institusi" value="<?=$selected_renstra_periode?>"/>
-                                            <input type="submit" class="btn-info" value="Lihat"/>
-                                    </form>
-                                </td>
-                            </tr>
-                            <?php endforeach;?>
+                                            case "0" : {
+                                                echo $data_anggota->formulir_ketua == "0" ? "Anggota ".$data_anggota->nama_unit :  "Ketua ".$data_anggota->nama_unit;
+                                                break;
+                                            }
+                                        }
+                                ?>
+                            </td>
+                            <td><?=($data_anggota->score / $data_anggota->MAX_SCORE) *100;?></td>
+                            <td>
+                                <form id="lihat-unit" action="<?=$action_lihat_kpi_unit;?>" method="post">
+                                        <input type="hidden" name="unit_id" value="<?=$data_anggota->unit_id;?>"/>
+                                        <input type="hidden" name="ketua_unit" value="<?=$data_anggota->formulir_ketua;?>"/>
+                                        <input type="hidden" name="periode_id" value="<?=$selected_periode_tahun_semetser;?>"/>
+                                        <input type="hidden" name="renstra_periode" value="<?=$selected_renstra_periode;?>"/>
+                                        <input type="hidden" name="sumber_id" value="<?=$selected_sumber;?>"/>
+                                    <!-- for bread crumb -->
+                                        <input type="hidden" name="show_bread_crumb_institusi" value="1"/>
+                                        <input type="hidden" name="institusi_id" value="<?=$selected_institusi;?>"/>
+                                        <input type="hidden" name="periode_id_institusi" value="<?=$selected_periode_tahun_semetser;?>"/>
+                                        <input type="hidden" name="renstra_periode_institusi" value="<?=$selected_renstra_periode?>"/>
+                                        <input type="submit" class="btn-info" value="Lihat"/>
+                                </form>
+                            </td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
+                        <?php endforeach;?>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 30px;">
+        <div class="card-header">
+            <h4><i class="fas fa-info"></i> Detil Pencapaian Masing - Masing Unit</h4>
         </div>
 
-        <div class="card" style="margin-top: 30px;">
-            <div class="card-header">
-                <h4><i class="fas fa-info"></i> Detil Pencapaian Masing - Masing Unit</h4>
-            </div>
-
-            <div class="card-body">
-                <div class="chart-container" style="position: relative;">
-                    <canvas id="canvas-detil-kinerja-saat-ini"></canvas>
-                </div>
+        <div class="card-body">
+            <div class="chart-container" style="position: relative;">
+                <canvas id="canvas-detil-kinerja-saat-ini"></canvas>
             </div>
         </div>
+    </div>
 
-        </section>
-    </main>
-</body>
-<!-- Jquery -->
-<script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
-<!-- Font Awsome -->
-<script src="https://kit.fontawesome.com/60acd380e3.js" crossorigin="anonymous"></script>
-<!-- ChartJs -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.js" crossorigin="anonymous"></script>
+    </section>
+</main>
 
-<!-- Own js file for global setting -->
-<script src=<?php echo base_url()."assets/js/global.js";?>></script>
+<!-- FOOTER -->
+<?php $this->load->view("partials/footer.php", [
+    "js" => [
+        "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.js"
+    ]
+]) ;?>
+
 
 <script>
 $(document).ready(function(){
@@ -208,32 +173,14 @@ $(document).ready(function(){
 let urlUnit = JSON.parse('<?php echo json_encode($action_lihat_kpi_unit);?>');
 let urlInstitusi = JSON.parse('<?php echo json_encode($action_lihat_kpi_institusi);?>');
 //data untuk pie chart
-let dataKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_kinerja_saat_ini);?>');
+let dataKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_kinerja);?>');
 //data untuk bar chart
-let dataDetilKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_detil_kinerja_saat_ini)?>');
+let dataDetilKinerjaSaatIni = JSON.parse('<?php echo json_encode($data_detil_kinerja)?>');
 //data untuk line chart
 let dataStatistikKinerja = JSON.parse('<?php echo json_encode($data_kinerja_statistik); ?>');
 
 let keteranganPeriode = JSON.parse('<?php echo json_encode($keteranganperiode);?>');
 let renstraPeriode = JSON.parse('<?php echo  is_null($selected_obj_renstra_periode) ? "" : json_encode($selected_obj_renstra_periode); ?>');
-
-let colors = [ 
-     '#4661EE',
-     '#EC5657',
-     '#1BCDD1',
-     '#8FAABB',
-     '#B08BEB',
-     '#3EA0DD',
-     '#F5A52A',
-     '#23BFAA',
-     '#FAA586',
-     '#EB8CC6',
-     "#2F4F4F",
-    "#008080",
-    "#2E8B57",
-    "#3CB371",
-    "#90EE90"
-];
 
 //form : ubah - bidang 
 $(document).on('change', 'select[name="sumber_id"]', function(){
@@ -286,7 +233,6 @@ var myPieChartKinerjaSaatIni = new Chart(canvasKinerjaSaatIni, {
         }
     }
 });
-
 
 let canvasDetilKinerjaSaatIni = $('#canvas-detil-kinerja-saat-ini');
 let myBarChartDetilKinerjaSaatIni = new Chart(canvasDetilKinerjaSaatIni, {
@@ -345,8 +291,6 @@ let myBarChartDetilKinerjaSaatIni = new Chart(canvasDetilKinerjaSaatIni, {
       }
     }
 });
-
-
 
 let canvasStatistikKinerja = $('#canvas-statistik-kinerja');
 let dataMyLineChartStatistikKinerja = {};
@@ -443,6 +387,4 @@ if(renstraPeriode){
         }
     });
 }
-
 </script>
-</html>

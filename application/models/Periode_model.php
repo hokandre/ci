@@ -7,7 +7,7 @@ class Periode_model extends CI_Model
      private $table_name = 'periode';
      private $table_pk= 'id'; 
 
-public function get ()
+public function get()
 { 
     $query = $this->db->get($this->table_name);
     return $query->result();
@@ -21,10 +21,16 @@ public function get_year()
     return $query->result();
 }
 
-public function get_by_year_and_semester($tahun, $semester){
+public function get_array_by_year_and_semester($tahun, $semester){
     $sql = "SELECT * FROM ".$this->table_name." WHERE tahun = ".$tahun." AND semester = ".$semester;
     $query = $this->db->query($sql);
     return $query->result();
+}
+
+public function get_row_by_year_and_semester($tahun, $semester){
+    $sql = "SELECT * FROM ".$this->table_name." WHERE tahun = ".$tahun." AND semester = ".$semester;
+    $query = $this->db->query($sql);
+    return $query->row();
 }
 
 public function get_by_id($id)

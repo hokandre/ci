@@ -107,7 +107,7 @@ $('#tambahBaris').on('click', function(){
                                     .attr("data-before", "[]")
                             );
         let colAction = $(`<td class="table-cell" name="col-button"></td>`)
-                                .append(`<button class="btn-info btn-simpan">Simpan</button>`)
+                                .append(`<button class="btn-info btn-simpan" type="simpan">Simpan</button>`)
                                 .append(`<button class="btn-delete">Hapus</button>`);
 
         let newRow = $(`<tr class='table-row' id='row-${newId}'></tr>`)
@@ -134,6 +134,7 @@ $(document).on('change', '#tahun', function(event){
 
 //3. selection indicator
 $(document).on('change', '#table-form-rencana-kerja-baru tr select[name="indikator"]',function(){
+    let parentTr = $(this).closest("tr");
     $(this).parent().next().find("input[name='kpi']").val('');
     $(this).parent().next().find("input[name='kpi']").attr('data-kpi-id','');
     $(this).parent().next().find("input[name='kpi']").attr('data-nama-kpi','');
@@ -142,7 +143,18 @@ $(document).on('change', '#table-form-rencana-kerja-baru tr select[name="indikat
     $(this).parent().parent().find('td[name="col-unit"] ul.tag-list').empty();
     $(this).parent().parent().find('td[name="col-kpi"] .dropdown-content').empty();
     let dataBefore = $(this).parent().parent().find('td[name="col-unit"] ul.tag-list').attr("data-before");
-    $(this).parent().parent().find('td[name="col-unit"] ul.tag-list').attr("data-removed",dataBefore);
+
+    let dataBeforeInTable = JSON.parse($(this).parent().parent().find('td[name="col-unit"] ul.tag-list').attr("data-removed"));
+    
+    /**
+     * Menentukan jenis operasi
+     */
+    let buttonType = $(parentTr).find("td[name='col-button'] button[type]").attr("type");
+
+    if(dataBeforeInTable.length == 0 && buttonType == "update"){
+        $(this).parent().parent().find('td[name="col-unit"] ul.tag-list').attr("data-removed",dataBefore);
+    }
+
     $(this).parent().parent().find('td[name="col-unit"] ul.tag-list').attr("data-inserted","[]");
     $(this).parent().parent().find('td[name="col-unit"] ul.tag-list').attr("data-before","[]");
 })
@@ -403,20 +415,38 @@ $(document).on('click', '#table-form-rencana-kerja-baru .dropdown .dropdown-cont
 
 //7. li item unit pada tabel customer listener for change and delete
 $(document).on('add', '#table-form-rencana-kerja-baru .tag-list .tag-list-item', function(){
-   
-    let kpiId = $(this).parent().parent().prev('[name="col-kpi"]').find('input[name="kpi"]').attr("data-kpi-id");
+    let parentTr = $(this).closest("tr");
+    let kpiId = $(parentTr).find('td[name="col-kpi"]').find('input[name="kpi"]').attr("data-kpi-id");
     let idInstitusi = 'institusi-' + $(this).attr("data-institusi-id");
     let unitId = $(this).attr("data-unit-id");
     let ketuaUnit = $(this).attr("data-ketua-unit");
     let target = $(this).attr("data-target");
-    let namaKpi = $(this).parent().parent().prev().find('input[name="kpi"]').attr("data-nama-kpi");
-    let idKpi = $(this).parent().parent().prev().find('input[name="kpi"]').attr("data-kpi-id");
-    let indikatorId = $(this).parent().parent().prev().prev().find('select[name="indikator"] option:selected').val();
-    let namaIndikator = $(this).parent().parent().prev().prev().find('select[name="indikator"] option:selected').text();
-    let bidangId = $(this).parent().parent().prev().prev().prev().find('select[name="bidang"] option:selected').val();
-    let namaBidang = $(this).parent().parent().prev().prev().prev().find('select[name="bidang"] option:selected').text();
-    let sumberId = $(this).parent().parent().prev().prev().prev().prev().find('select[name="sumber"] option:selected').val();
-    let namaSumber = $(this).parent().parent().prev().prev().prev().prev().find('select[name="sumber"] option:selected').text();
+    let satuan = $(this).attr("data-satuan");
+
+    let simbolSatuan = '%';
+    switch(satuan) {
+        case 'orang' :
+            simbolSatuan = 'org';
+            break;
+        case 'satuan' :
+            simbolSatuan = 'Buah (Desimal)';
+            break;
+        case 'satuan bulat' :
+            simbolSatuan = 'Buah (Bulat)';
+            break;    
+        default :
+            simbolSatuan = simbolSatuan;
+            break;
+    }
+
+    let namaKpi = $(parentTr).find('td[name="col-kpi"]').find('input[name="kpi"]').attr("data-nama-kpi");
+    let indikatorId = $(parentTr).find('td[name="col-indikator"]').find('select[name="indikator"] option:selected').val();
+    let namaIndikator = $(parentTr).find('td[name="col-indikator"]').find('select[name="indikator"] option:selected').text();
+    let bidangId = $(parentTr).find('td[name="col-bidang"]').find('select[name="bidang"] option:selected').val();
+    let namaBidang = $(parentTr).find('td[name="col-bidang"]').find('select[name="bidang"] option:selected').text();
+    let sumberId = $(parentTr).find('td[name="col-sumber"]').find('select[name="sumber"] option:selected').val();
+    let namaSumber = $(parentTr).find('td[name="col-sumber"]').find('select[name="sumber"] option:selected').text();
+    let bobot = $(parentTr).find('td[name="col-bobot"]').find('input[name="bobot"]').val();
 
     $(`#${idInstitusi} button.accordion[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`)
     .next('.panel')
@@ -425,9 +455,12 @@ $(document).on('add', '#table-form-rencana-kerja-baru .tag-list .tag-list-item',
         <div class="table-row" data-kpi-id="${kpiId}">
             <div class="table-cell" name="col-sumber"><p data-sumber-id="${sumberId}" data-nama-sumber="${namaSumber}">${namaSumber}</p></div>
             <div class="table-cell" name="col-bidang"><p data-bidang-id="${bidangId}" data-nama-bidang="${namaBidang}">${namaBidang}</p></div>
+            <div class="table-cell" name="col-bobot">
+                <p data-bobot="${bobot}">${bobot}</p>
+            </div>
             <div class="table-cell" name="col-indikator"><p data-indikator-id="${indikatorId}" data-nama-indikator="${namaIndikator}">${namaIndikator}</p></div>
-            <div class="table-cell" name="col-kpi"><p data-kpi-id="${idKpi}" data-nama-kpi="${namaKpi}">${namaKpi}</p></div>
-            <div class="table-cell" name="col-target"><p data-target="${target}">${target}</p></div>
+            <div class="table-cell" name="col-kpi"><p data-kpi-id="${kpiId}" data-nama-kpi="${namaKpi}">${namaKpi}</p></div>
+            <div class="table-cell" name="col-target"><p data-target="${target}">${target} ${simbolSatuan}</p></div>
         </div>`);
 })
 
@@ -534,9 +567,7 @@ $(document).on('click', '#modal-unit .tag-list .tag-list-item .tag-list-item-clo
         let indexInDataInserted = dataInserted.findIndex(unit => (unit.unit_id==unitId) && (unit.ketua_unit == ketuaUnit ));
         if(indexInDataInserted != -1){
             dataInserted.splice(indexInDataInserted, 1);
-            $('#modal-unit .tag-list').attr("data-inserted", JSON.stringify(dataInserted));
         }
-        
     }else{
         dataRemoved.push({
             "unit_id" : unitId,
@@ -546,16 +577,20 @@ $(document).on('click', '#modal-unit .tag-list .tag-list-item .tag-list-item-clo
             "target" : target
         })
         dataBefore.splice(indexInDataBefore, 1);
-       
-        $('#modal-unit .tag-list').attr("data-before", JSON.stringify(dataBefore));
-        $('#modal-unit .tag-list').attr("data-removed", JSON.stringify(dataRemoved));
-        
-        let rowId = $('#modal-unit input[type="hidden"]').val();
-        $(`#table-form-rencana-kerja-baru tr#${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).trigger("remove");
-        $(`#table-form-rencana-kerja-baru tr#${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).remove();
     }
+    //update data modal unit
+    $('#modal-unit .tag-list').attr("data-inserted", JSON.stringify(dataInserted));
+    $('#modal-unit .tag-list').attr("data-before", JSON.stringify(dataBefore));
+    $('#modal-unit .tag-list').attr("data-removed", JSON.stringify(dataRemoved));
+
+    //update data table
     $('#modal-unit .tag-list').trigger('change');
-    $(this).parent().remove();
+
+    //update ui
+    let rowId = $('#modal-unit input[type="hidden"]').val();
+    $(`#table-form-rencana-kerja-baru tr#${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).trigger("remove");
+    $(`#table-form-rencana-kerja-baru tr#${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).remove();
+    $(this).closest("li").remove();
 })
 
 //changed
@@ -602,7 +637,6 @@ $(document).on("click", '#modal-unit #btn-save', function(){
                 "target" : target,
                 "satuan" : satuan
             })
-            $('#modal-unit .tag-list').attr("data-inserted", JSON.stringify(dataInserted));
         }else{
             dataBefore[indexElementInDataBefore].target = target;
             dataBefore[indexElementInDataBefore].satuan = satuan;
@@ -620,9 +654,12 @@ $(document).on("click", '#modal-unit #btn-save', function(){
                 "satuan" : satuan
             }
         );
-        $('#modal-unit .tag-list').attr("data-before", JSON.stringify(dataBefore));
-        $('#modal-unit .tag-list').attr("data-removed", JSON.stringify(dataRemoved));
     }
+
+    $('#modal-unit .tag-list').attr("data-before", JSON.stringify(dataBefore));
+    $('#modal-unit .tag-list').attr("data-removed", JSON.stringify(dataRemoved));
+    $('#modal-unit .tag-list').attr("data-inserted", JSON.stringify(dataInserted));
+
     $('#modal-unit .tag-list').trigger('change');
 
 
@@ -634,19 +671,29 @@ $(document).on("click", '#modal-unit #btn-save', function(){
         $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-unit-id', unitId);
         $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-institusi-id', institusiId);
         $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-satuan', satuan);
-        $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).html(`<span class="tag-list-item-nama-unit">${namaUnit}</span> <span class="tag-list-item-target">target:${target} ${simbolSatuan}<span class="tag-list-item-close">&#10005;</span></span>`);
+        $(`#modal-unit .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).html(`<span class="tag-list-item-nama-unit">${namaUnit}</span> <span class="tag-list-item-target">target:${target} ${simbolSatuan}</span>
+        <span class="tag-list-item-close">&#10005;</span>`);
         //update data pada tabel
         $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-target', target);
         $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-nama-unit', namaUnit);
         $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-unit-id', unitId);
         $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-institusi-id', institusiId);
         $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).attr('data-satuan', satuan);
-        $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).html(`<span class="tag-list-item-nama-unit">${namaUnit}</span> <span class="tag-list-item-target">target:${target} ${simbolSatuan}<span class="tag-list-item-close">&#10005;</span></span>`);
+        $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).html(`
+        <span class="tag-list-item-nama-unit">${namaUnit}</span> 
+        <span class="tag-list-item-target">target:${target} ${simbolSatuan}</span>
+        <span class="tag-list-item-close">&#10005;</span>`);
         $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).trigger("change");
     }else{
         //menambah data pada modal dan tabel
-        $('#modal-unit .tag-list').append(`<li class="tag-list-item" data-unit-id="${unitId}" data-ketua-unit="${ketuaUnit}" data-nama-unit="${namaUnit}" data-target="${target}" data-institusi-id="${institusiId}" data-satuan="${satuan}"><span class="tag-list-item-nama-unit">${namaUnit}</span> <span class="tag-list-item-target">target:${target} ${simbolSatuan}</span> <span class="tag-list-item-close">&#10005;</span></li>`);
-        $(`#table-form-rencana-kerja-baru #${rowId} .tag-list`).append(`<li class="tag-list-item btn-toggle-modal btn-toggle-modal-unit" modal-target="modal-unit" data-unit-id="${unitId}" data-ketua-unit="${ketuaUnit}" data-nama-unit="${namaUnit}" data-target="${target}" data-institusi-id="${institusiId}" data-satuan="${satuan}"><span class="tag-list-item-nama-unit">${namaUnit}</span> <span class="tag-list-item-target">target:${target} ${simbolSatuan}</span> <span class="tag-list-item-close">&#10005;</span></li>`);
+        $('#modal-unit .tag-list').append(`<li class="tag-list-item" data-unit-id="${unitId}" data-ketua-unit="${ketuaUnit}" data-nama-unit="${namaUnit}" data-target="${target}" data-institusi-id="${institusiId}" data-satuan="${satuan}">
+        <span class="tag-list-item-nama-unit">${namaUnit}</span> 
+        <span class="tag-list-item-target">target:${target} ${simbolSatuan}</span> 
+        <span class="tag-list-item-close">&#10005;</span></li>`);
+        $(`#table-form-rencana-kerja-baru #${rowId} .tag-list`).append(`<li class="tag-list-item btn-toggle-modal btn-toggle-modal-unit" modal-target="modal-unit" data-unit-id="${unitId}" data-ketua-unit="${ketuaUnit}" data-nama-unit="${namaUnit}" data-target="${target}" data-institusi-id="${institusiId}" data-satuan="${satuan}">
+        <span class="tag-list-item-nama-unit">${namaUnit}</span> 
+        <span class="tag-list-item-target">target:${target} ${simbolSatuan}</span> 
+        <span class="tag-list-item-close">&#10005;</span></li>`);
         $(`#table-form-rencana-kerja-baru #${rowId} .tag-list .tag-list-item[data-unit-id="${unitId}"][data-ketua-unit="${ketuaUnit}"]`).trigger("add");
     }
 
@@ -674,22 +721,24 @@ $(document).on('click', '.table-cell .btn-update', function(){
 
     let periodeId = $(parentCell).find('input[name="periode_id"]').val();
     let kpiSebelum = $(parentCell).find('input[name="kpi"]').val();
-    let sumber = $(parentCell).parent().find('td[name="col-sumber"] select[name="sumber"]').val();
-    let bidang = $(parentCell).parent().find('td[name="col-bidang"] select[name="bidang"]').val();
-    let indikator = $(parentCell).parent().find('td[name="col-indikator"] select[name="indikator"]').val();
-    let bobot = $(parentCell).parent().find('td[name="col-bobot"] input[name="bobot"]').val();
+
+    let parentTr = $(this).closest("tr");
+    let sumber = $(parentTr).find('td[name="col-sumber"] select[name="sumber"]').val();
+    let bidang = $(parentTr).find('td[name="col-bidang"] select[name="bidang"]').val();
+    let indikator = $(parentTr).find('td[name="col-indikator"] select[name="indikator"]').val();
+    let bobot = $(parentTr).find('td[name="col-bobot"] input[name="bobot"]').val();
 
     let unit = {
-        "removed_unit" : JSON.parse($(parentCell).parent().find('td[name="col-unit"] ul.tag-list').attr("data-removed")),
-        "inserted_unit" :JSON.parse($(parentCell).parent().find('td[name="col-unit"] ul.tag-list').attr("data-inserted")),
-        "changed_unit" : JSON.parse($(parentCell).parent().find('td[name="col-unit"] ul.tag-list').attr("data-before"))
+        "removed_unit" : JSON.parse($(parentTr).find('td[name="col-unit"] ul.tag-list').attr("data-removed")),
+        "inserted_unit" :JSON.parse($(parentTr).find('td[name="col-unit"] ul.tag-list').attr("data-inserted")),
+        "changed_unit" : JSON.parse($(parentTr).find('td[name="col-unit"] ul.tag-list').attr("data-before"))
     };
     
     let dataPost = {"kpi_sebelum" : kpiSebelum, "unit" : unit, "periode_id" : periodeId, "sumber" : sumber, "bidang" : bidang, "indikator" : indikator, "bobot" : bobot};
-    let newKpiId = $(parentCell).parent().find('td[name="col-kpi"] input[name="kpi"]').attr("data-kpi-id");
+    let newKpiId = $(parentTr).find('td[name="col-kpi"] input[name="kpi"]').attr("data-kpi-id");
     if(kpiSebelum != newKpiId){
         dataPost["kpi_baru"] = {
-            "nama_kpi" : $(parentCell).parent().find('td[name="col-kpi"] input[name="kpi"]').attr("data-nama-kpi"),
+            "nama_kpi" : $(parentTr).find('td[name="col-kpi"] input[name="kpi"]').attr("data-nama-kpi"),
         }
 
         
@@ -723,7 +772,9 @@ $(document).on('click', '.table-cell .btn-update', function(){
                 $("#modal-message").css("display", "block"); 
             }
             if(error.status == 500){
+                let errorMessage = JSON.parse(error.responseText);
                 console.log('Internal server error!')
+                console.log(errorMessage)
             }
         })
 })
@@ -753,19 +804,19 @@ $(document).on('click', '.table-cell .btn-delete', function(){
 })
 
 $(document).on('click', '.table-cell .btn-simpan', function(){
-    let parentCell = $(this).parent();
+    let parentTr = $(this).closest("tr");
     
     let periodeId = globalPeriodeId;
-    let sumber = $(parentCell).parent().find('td[name="col-sumber"] select[name="sumber"]').val();
-    let bidang = $(parentCell).parent().find('td[name="col-bidang"] select[name="bidang"]').val();
-    let bobot = $(parentCell).parent().find('td[name="col-bobot"] input[name="bobot"]').val();
-    let kpi_id = $(parentCell).parent().find('td[name="col-kpi"] input[name="kpi"]').attr("data-kpi-id");
-    let indikator = $(parentCell).parent().find('td[name="col-indikator"] select[name="indikator"]').val();
+    let sumber = $(parentTr).find('td[name="col-sumber"] select[name="sumber"]').val();
+    let bidang = $(parentTr).find('td[name="col-bidang"] select[name="bidang"]').val();
+    let bobot = $(parentTr).find('td[name="col-bobot"] input[name="bobot"]').val();
+    let kpi_id = $(parentTr).find('td[name="col-kpi"] input[name="kpi"]').attr("data-kpi-id");
+    let indikator = $(parentTr).find('td[name="col-indikator"] select[name="indikator"]').val();
 
     let unit = {
         "removed_unit" : [],
         "changed_unit" : [],
-        "inserted_unit" :JSON.parse($(parentCell).parent().find('td[name="col-unit"] ul.tag-list').attr("data-inserted")),
+        "inserted_unit" :JSON.parse($(parentTr).find('td[name="col-unit"] ul.tag-list').attr("data-inserted")),
     };
 
     let dataPost = {
@@ -777,9 +828,10 @@ $(document).on('click', '.table-cell .btn-simpan', function(){
         "bobot" : bobot
     };
 
+    //kpi di ubah
     if(!kpi_id){
         dataPost["kpi_baru"] = {
-            "nama_kpi" : $(parentCell).parent().find('td[name="col-kpi"] input[name="kpi"]').attr("data-nama-kpi")
+            "nama_kpi" : $(parentTr).find('td[name="col-kpi"] input[name="kpi"]').attr("data-nama-kpi")
         }
     }else{
         dataPost["kpi_sebelum"] = kpi_id;

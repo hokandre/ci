@@ -1,0 +1,26 @@
+#form-tambah-kpi {
+    display: flex;
+    justify-content: space-around;
+    background-color: var(--white);
+    margin-bottom: 10px;
+}
+
+#form-tambah-kpi div {
+    width: 30%;
+    margin-right: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#form-tambah-kpi div select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: 5px 10px;
+}
+
+#form-tambah-kpi div button {
+    display: inline-block;
+    width: 100px;
+}
